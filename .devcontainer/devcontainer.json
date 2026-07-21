@@ -1,0 +1,35 @@
+{
+  "name": "Nostr React Client",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "runArgs": ["--security-opt", "label:disable"],
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [
+    5173
+  ],
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "EditorConfig.EditorConfig",
+        "christian-kohler.npm-intellisense",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "files.associations": {
+          "*.jsx": "javascriptreact",
+          "*.mjs": "javascript"
+        }
+      }
+    }
+  },
+  "postStartCommand": "echo '✅ Container ready — run `npm run dev` to start the dev server'"
+}
