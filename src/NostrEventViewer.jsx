@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import NDK, { NDKEvent } from "@nostr-dev-kit/ndk";
+import { getNDK, connectNDK } from "./ndk";
 import NostrEventCard from "./NostrEventCard";
 import NostrFeed from "./NostrFeed";
 
@@ -24,16 +24,13 @@ export default function NostrEventViewer({
   const [fetchError, setFetchError] = useState(null);
   const [ndk, setNdk] = useState(null);
 
-  // Initialize NDK
+  // Initialize global NDK
   useEffect(() => {
-    const ndkInstance = new NDK({
-      explicitRelayUrls: relayUrls,
-      aiGuardrails: true,
-    });
+    const ndkInstance = getNDK({ explicitRelayUrls: relayUrls });
 
     let cancelled = false;
 
-    ndkInstance.connect().then(() => {
+    connectNDK({ explicitRelayUrls: relayUrls }).then(() => {
       if (!cancelled) setNdk(ndkInstance);
     });
 
@@ -99,7 +96,7 @@ export default function NostrEventViewer({
         )}
 
         {singleEvent && !loading && (
-          <NostrEventCard event={singleEvent} ndk={ndk} showMeta={true} />
+          <NostrEventCard event={singleEvent} showMeta={true} />
         )}
 
         {!eventId && !loading && (

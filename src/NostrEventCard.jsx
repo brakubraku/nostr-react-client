@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getNDK } from "./ndk";
 /**
  * Format a Unix timestamp (in seconds) to a human-readable relative time string.
  */
@@ -67,13 +68,11 @@ function getFavorites() {
  *
  * Props:
  *   event          - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
- *   ndk            - An NDK instance (optional, used to fetch author metadata if available)
  *   showMeta       - Whether to show pubkey, id, kind metadata (default: true)
  *   confirmUnfav   - Whether to show a confirmation modal before unfavouriting (default: false)
  */
 export default function NostrEventCard({
   event,
-  ndk,
   showMeta = true,
   confirmUnfav = false,
 }) {
@@ -81,6 +80,7 @@ export default function NostrEventCard({
   const [expanded, setExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const ndk = getNDK();
 
   // Check if this event is already in favorites on mount
   useEffect(() => {

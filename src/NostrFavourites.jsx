@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getNDK } from "./ndk";
 import NostrEventCard from "./NostrEventCard";
 
 /**
@@ -9,6 +10,7 @@ import NostrEventCard from "./NostrEventCard";
  */
 export default function NostrFavourites() {
   const [favourites, setFavourites] = useState([]);
+  const ndk = getNDK();
 
   // Load favourites from localStorage on mount and when storage changes
   useEffect(() => {
@@ -64,7 +66,6 @@ export default function NostrFavourites() {
         <div className="nostr-favourites__list">
           {favourites.map((event) => (
             <NostrEventCard
-              key={event.id}
               event={event}
               showMeta={true}
               confirmUnfav={true}

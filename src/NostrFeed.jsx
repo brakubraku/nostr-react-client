@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import NDK, { filterAndRelaySetFromBech32 } from "@nostr-dev-kit/ndk";
+import { getNDK, connectNDK } from "./ndk";
 import NostrEventCard from "./NostrEventCard";
 
 /**
@@ -34,20 +34,16 @@ export default function NostrFeed({
   const ndkRef = useRef(null);
   const subRef = useRef(null);
 
-  // Initialize NDK and subscribe
+  // Initialize global NDK and subscribe
   useEffect(() => {
-    const ndk = new NDK({
-      explicitRelayUrls: relayUrls,
-      aiGuardrails: true,
-    });
-
+    const ndk = getNDK({ explicitRelayUrls: relayUrls });
     ndkRef.current = ndk;
 
     let cancelled = false;
 
     async function connectAndSubscribe() {
       try {
-        await ndk.connect(10 ^ 6);
+        await connectNDK({ explicitRelayUrls: relayUrls });
         if (cancelled) return;
         setConnected(true);
         setError(null);
@@ -87,7 +83,8 @@ export default function NostrFeed({
       if (subRef.current) {
         subRef.current.stop();
       }
-      ndkRef.current = null;
+
+      // Don't null ndkRef — the global NDK is shared
     };
   }, [relayUrls.join(","), JSON.stringify(filter), limit, paused]);
 
@@ -177,12 +174,7 @@ export default function NostrFeed({
         )}
 
         {events.map((event) => (
-          <NostrEventCard
-            key={event.id}
-            event={event}
-            ndk={ndkRef.current}
-            showMeta={showMeta}
-          />
+          <NostrEventCard key={event.id} event={event} showMeta={showMeta} />
         ))}
       </div>
 
