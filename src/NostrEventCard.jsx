@@ -52,6 +52,18 @@ function getKindLabel(kind) {
 }
 
 /**
+ * Get saved favorites from localStorage.
+ */
+function getFavorites() {
+  try {
+    const stored = localStorage.getItem("nostr-favorites");
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * NostrEventCard — a React component that displays a single Nostr event.
  *
  * Props:
@@ -62,6 +74,13 @@ function getKindLabel(kind) {
 export default function NostrEventCard({ event, ndk, showMeta = true }) {
   const [authorMeta, setAuthorMeta] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Check if this event is already in favorites on mount
+  useEffect(() => {
+    const favorites = getFavorites();
+    setIsFavorite(favorites.some((fav) => fav.id === event?.id));
+  }, [event?.id]);
 
   // Fetch author metadata (kind 0) if we have an NDK instance
   useEffect(() => {
@@ -72,12 +91,12 @@ export default function NostrEventCard({ event, ndk, showMeta = true }) {
     async function fetchAuthor() {
       try {
         const user = ndk.getUser({ pubkey: event.pubkey });
-        await user.fetchMetadata();
+        await user.fetchProfile();
         if (!cancelled) {
           setAuthorMeta(user.profile);
         }
-      } catch {
-        // Silently ignore — metadata is optional
+      } catch (error) {
+        console.error(error);
       }
     }
 
@@ -86,6 +105,34 @@ export default function NostrEventCard({ event, ndk, showMeta = true }) {
       cancelled = true;
     };
   }, [ndk, event?.pubkey]);
+
+  /**
+   * Toggle this event's favorite status in localStorage.
+   */
+  function toggleFavorite(e) {
+    e.stopPropagation(); // Prevent card expansion when clicking the button
+    const favorites = getFavorites();
+    const eventData = {
+      id: event.id,
+      kind: event.kind,
+      pubkey: event.pubkey,
+      content: event.content,
+      created_at: event.created_at,
+      tags: event.tags,
+    };
+
+    if (isFavorite) {
+      // Remove from favorites
+      const updated = favorites.filter((fav) => fav.id !== event.id);
+      localStorage.setItem("nostr-favorites", JSON.stringify(updated));
+      setIsFavorite(false);
+    } else {
+      // Add to favorites
+      const updated = [eventData, ...favorites];
+      localStorage.setItem("nostr-favorites", JSON.stringify(updated));
+      setIsFavorite(true);
+    }
+  }
 
   if (!event) {
     return <div className="nostr-card nostr-card--empty">No event data</div>;
@@ -134,9 +181,30 @@ export default function NostrEventCard({ event, ndk, showMeta = true }) {
           </div>
         </div>
 
-        {showMeta && (
-          <span className="nostr-card__kind-badge">{getKindLabel(kind)}</span>
-        )}
+        <div className="nostr-card__header-right">
+          {showMeta && (
+            <span className="nostr-card__kind-badge">{getKindLabel(kind)}</span>
+          )}
+          <button
+            className={`nostr-card__fav-btn ${isFavorite ? "nostr-card__fav-btn--active" : ""}`}
+            onClick={toggleFavorite}
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill={isFavorite ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Event content */}
