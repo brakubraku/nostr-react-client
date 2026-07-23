@@ -132,6 +132,9 @@ export default function NostrEventCard({ event, ndk, showMeta = true }) {
       localStorage.setItem("nostr-favorites", JSON.stringify(updated));
       setIsFavorite(true);
     }
+
+    // Dispatch custom event so other components (e.g. NostrFavourites) can refresh
+    window.dispatchEvent(new Event("nostr-favorites-changed"));
   }
 
   if (!event) {
