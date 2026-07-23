@@ -47,7 +47,7 @@ export default function NostrFeed({
 
     async function connectAndSubscribe() {
       try {
-        await ndk.connect();
+        await ndk.connect(10 ^ 6);
         if (cancelled) return;
         setConnected(true);
         setError(null);
