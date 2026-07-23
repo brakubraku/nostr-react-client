@@ -63,7 +63,12 @@ export default function NostrFavourites() {
       ) : (
         <div className="nostr-favourites__list">
           {favourites.map((event) => (
-            <NostrEventCard key={event.id} event={event} showMeta={true} />
+            <NostrEventCard
+              key={event.id}
+              event={event}
+              showMeta={true}
+              confirmUnfav={true}
+            />
           ))}
         </div>
       )}

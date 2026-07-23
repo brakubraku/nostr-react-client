@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-
 /**
  * Format a Unix timestamp (in seconds) to a human-readable relative time string.
  */
@@ -67,14 +66,21 @@ function getFavorites() {
  * NostrEventCard — a React component that displays a single Nostr event.
  *
  * Props:
- *   event    - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
- *   ndk      - An NDK instance (optional, used to fetch author metadata if available)
- *   showMeta - Whether to show pubkey, id, kind metadata (default: true)
+ *   event          - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
+ *   ndk            - An NDK instance (optional, used to fetch author metadata if available)
+ *   showMeta       - Whether to show pubkey, id, kind metadata (default: true)
+ *   confirmUnfav   - Whether to show a confirmation modal before unfavouriting (default: false)
  */
-export default function NostrEventCard({ event, ndk, showMeta = true }) {
+export default function NostrEventCard({
+  event,
+  ndk,
+  showMeta = true,
+  confirmUnfav = false,
+}) {
   const [authorMeta, setAuthorMeta] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Check if this event is already in favorites on mount
   useEffect(() => {
@@ -111,6 +117,13 @@ export default function NostrEventCard({ event, ndk, showMeta = true }) {
    */
   function toggleFavorite(e) {
     e.stopPropagation(); // Prevent card expansion when clicking the button
+
+    // Show confirmation modal when unfavouriting inside NostrFavourites
+    if (isFavorite && confirmUnfav) {
+      setShowConfirmModal(true);
+      return;
+    }
+
     const favorites = getFavorites();
     const eventData = {
       id: event.id,
@@ -135,6 +148,25 @@ export default function NostrEventCard({ event, ndk, showMeta = true }) {
 
     // Dispatch custom event so other components (e.g. NostrFavourites) can refresh
     window.dispatchEvent(new Event("nostr-favorites-changed"));
+  }
+
+  function removeFromFavorites() {
+    const favorites = getFavorites();
+    const updated = favorites.filter((fav) => fav.id !== event.id);
+    localStorage.setItem("nostr-favorites", JSON.stringify(updated));
+    setIsFavorite(false);
+    window.dispatchEvent(new Event("nostr-favorites-changed"));
+  }
+
+  function confirmRemove(e) {
+    e.stopPropagation();
+    removeFromFavorites();
+    setShowConfirmModal(false);
+  }
+
+  function cancelConfirm(e) {
+    e.stopPropagation();
+    setShowConfirmModal(false);
   }
 
   if (!event) {
@@ -270,6 +302,34 @@ export default function NostrEventCard({ event, ndk, showMeta = true }) {
           {expanded ? "▲ less" : "▼ more"}
         </span>
       </div>
+
+      {showConfirmModal && (
+        <div className="nostr-card__modal-overlay" onClick={cancelConfirm}>
+          <div
+            className="nostr-card__modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="nostr-card__modal-title">Remove from favourites?</h3>
+            <p className="nostr-card__modal-text">
+              Are you sure you want to remove this event from your favourites?
+            </p>
+            <div className="nostr-card__modal-actions">
+              <button
+                className="nostr-card__modal-btn nostr-card__modal-btn--cancel"
+                onClick={cancelConfirm}
+              >
+                Cancel
+              </button>
+              <button
+                className="nostr-card__modal-btn nostr-card__modal-btn--confirm"
+                onClick={confirmRemove}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
