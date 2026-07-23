@@ -105,6 +105,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  overflow: visible;
 }
 
 .nostr-card__avatar {
@@ -113,6 +114,14 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.nostr-card__avatar:hover {
+  transform: scale(5);
+  z-index: 10;
+  position: relative;
 }
 
 .nostr-card__avatar-placeholder {
