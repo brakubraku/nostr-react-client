@@ -2,10 +2,17 @@ import { useState } from "react";
 import NostrFeed from "./NostrFeed";
 import NostrEventViewer from "./NostrEventViewer";
 import NostrFavourites from "./NostrFavourites";
+import NostrProfile from "./NostrProfile";
 import "./App.css";
 
 function App() {
   const [viewMode, setViewMode] = useState("feed");
+  const [profilePubkey, setProfilePubkey] = useState("");
+
+  function handleNavigateToProfile(pubkey) {
+    setProfilePubkey(pubkey);
+    setViewMode("profile");
+  }
 
   return (
     <div className="app">
@@ -23,6 +30,14 @@ function App() {
             onClick={() => setViewMode("viewer")}
           >
             Event Lookup
+          </button>
+          <button
+            onClick={() => {
+              setProfilePubkey("");
+              setViewMode("profile");
+            }}
+          >
+            Profile
           </button>
           <button
             className={`app__nav-btn ${viewMode === "favourites" ? "app__nav-btn--active" : ""}`}
@@ -44,6 +59,7 @@ function App() {
             filter={{ kinds: [1], limit: 30 }}
             limit={50}
             showMeta={true}
+            onNavigateToProfile={handleNavigateToProfile}
           />
         )}
 
@@ -51,10 +67,15 @@ function App() {
           <NostrEventViewer
             mode="single"
             relayUrls={["wss://relay.primal.net"]}
+            onNavigateToProfile={handleNavigateToProfile}
           />
         )}
-
-        {viewMode === "favourites" && <NostrFavourites />}
+        {viewMode === "profile" && (
+          <NostrProfile initialPubkey={profilePubkey} />
+        )}
+        {viewMode === "favourites" && (
+          <NostrFavourites onNavigateToProfile={handleNavigateToProfile} />
+        )}
       </main>
     </div>
   );

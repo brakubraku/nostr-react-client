@@ -5,10 +5,13 @@ import NostrEventCard from "./NostrEventCard";
 /**
  * NostrFavourites — displays saved favourite Nostr events from localStorage.
  *
+ * Props:
+ *   onNavigateToProfile - Callback for navigating to a user's profile
+ *
  * Readers can remove events from favourites by clicking the heart button
  * on each NostrEventCard, or clear all favourites with the clear button.
  */
-export default function NostrFavourites() {
+export default function NostrFavourites({ onNavigateToProfile }) {
   const [favourites, setFavourites] = useState([]);
   const ndk = getNDK();
 
@@ -69,6 +72,7 @@ export default function NostrFavourites() {
               event={event}
               showMeta={true}
               confirmUnfav={true}
+              onNavigateToProfile={onNavigateToProfile}
             />
           ))}
         </div>

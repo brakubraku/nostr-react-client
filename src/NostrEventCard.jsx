@@ -67,14 +67,16 @@ function getFavorites() {
  * NostrEventCard — a React component that displays a single Nostr event.
  *
  * Props:
- *   event          - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
- *   showMeta       - Whether to show pubkey, id, kind metadata (default: true)
- *   confirmUnfav   - Whether to show a confirmation modal before unfavouriting (default: false)
+ *   event                - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
+ *   showMeta             - Whether to show pubkey, id, kind metadata (default: true)
+ *   confirmUnfav         - Whether to show a confirmation modal before unfavouriting (default: false)
+ *   onNavigateToProfile  - Callback when the user clicks an author avatar/name, receives (pubkey)
  */
 export default function NostrEventCard({
   event,
   showMeta = true,
   confirmUnfav = false,
+  onNavigateToProfile,
 }) {
   const [authorMeta, setAuthorMeta] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -187,7 +189,16 @@ export default function NostrEventCard({
     <div className="nostr-card" onClick={() => setExpanded(!expanded)}>
       <div className="nostr-card__header">
         {/* Author avatar + name */}
-        <div className="nostr-card__author">
+        <div
+          className="nostr-card__author"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onNavigateToProfile && pubkey) {
+              onNavigateToProfile(pubkey);
+            }
+          }}
+          title="View profile"
+        >
           {authorMeta?.picture ? (
             <img
               className="nostr-card__avatar"

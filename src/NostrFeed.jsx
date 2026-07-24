@@ -16,16 +16,18 @@ const DEFAULT_RELAYS = [
  * displays a live-updating feed of events.
  *
  * Props:
- *   relayUrls   - Array of relay WebSocket URLs (default: see DEFAULT_RELAYS)
- *   filter      - NDK subscription filter object (default: { kinds: [1], limit: 20 })
- *   limit       - Max number of events to keep in the feed (default: 50)
- *   showMeta    - Passed through to NostrEventCard
+ *   relayUrls           - Array of relay WebSocket URLs (default: see DEFAULT_RELAYS)
+ *   filter              - NDK subscription filter object (default: { kinds: [1], limit: 20 })
+ *   limit               - Max number of events to keep in the feed (default: 50)
+ *   showMeta            - Passed through to NostrEventCard
+ *   onNavigateToProfile - Callback for navigating to a user's profile
  */
 export default function NostrFeed({
   relayUrls = DEFAULT_RELAYS,
   filter = { kinds: [1], limit: 20 },
   limit = 50,
   showMeta = true,
+  onNavigateToProfile,
 }) {
   const [events, setEvents] = useState([]);
   const [connected, setConnected] = useState(false);
@@ -174,7 +176,12 @@ export default function NostrFeed({
         )}
 
         {events.map((event) => (
-          <NostrEventCard key={event.id} event={event} showMeta={showMeta} />
+          <NostrEventCard
+            key={event.id}
+            event={event}
+            showMeta={showMeta}
+            onNavigateToProfile={onNavigateToProfile}
+          />
         ))}
       </div>
 
