@@ -10,16 +10,14 @@ import NostrFeed from "./NostrFeed";
  * 2. Browse a live feed of events
  *
  * Props:
- *   eventId             - Fetch and display a single event by ID (optional)
- *   relayUrls           - Array of relay WebSocket URLs (optional)
- *   mode                - "single" | "feed" — display mode (default: "feed")
- *   onNavigateToProfile - Callback for navigating to a user's profile
+ *   eventId   - Fetch and display a single event by ID (optional)
+ *   relayUrls - Array of relay WebSocket URLs (optional)
+ *   mode      - "single" | "feed" — display mode (default: "feed")
  */
 export default function NostrEventViewer({
   eventId,
   relayUrls = ["wss://relay.primal.net"],
-  mode = "feed",
-  onNavigateToProfile,
+  mode,
 }) {
   const [singleEvent, setSingleEvent] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -98,11 +96,7 @@ export default function NostrEventViewer({
         )}
 
         {singleEvent && !loading && (
-          <NostrEventCard
-            event={singleEvent}
-            showMeta={true}
-            onNavigateToProfile={onNavigateToProfile}
-          />
+          <NostrEventCard event={singleEvent} showMeta={true} />
         )}
 
         {!eventId && !loading && (
@@ -115,11 +109,6 @@ export default function NostrEventViewer({
   }
 
   // Default: feed mode
-  return (
-    <NostrFeed
-      relayUrls={relayUrls}
-      showMeta={true}
-      onNavigateToProfile={onNavigateToProfile}
-    />
-  );
+
+  return <NostrFeed relayUrls={relayUrls} showMeta={true} />;
 }

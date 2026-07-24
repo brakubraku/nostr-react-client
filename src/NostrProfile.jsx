@@ -1,43 +1,41 @@
 import { useState, useEffect, useCallback } from "react";
-import { getNDK, connectNDK } from "./ndk";
+import { useParams } from "react-router-dom";
+import { getNDK } from "./ndk";
 import NostrEventCard from "./NostrEventCard";
 
 /**
  * NostrProfile — a React component that looks up a Nostr user's profile
  * metadata (kind 0) and their published text note events (kind 1).
  *
- * Props:
- *   initialPubkey - Optional initial pubkey or npub to auto-lookup
+ * Reads the pubkey from the URL path `/profile/:pubkey`,
+ * or lets the user enter one manually via a search input.
  */
-export default function NostrProfile({ initialPubkey = "" }) {
-  const [inputValue, setInputValue] = useState(initialPubkey);
+export default function NostrProfile() {
+  const { pubkey: urlPubkey } = useParams();
+  const [inputValue, setInputValue] = useState(urlPubkey || "");
   const [pubkey, setPubkey] = useState(null);
   const [profile, setProfile] = useState(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [error, setError] = useState(null);
-  // const [ndkReady, setNdkReady] = useState(false);
+
   const [sortOrder, setSortOrder] = useState("newest");
 
-  // Initialize global NDK
-  // useEffect(() => {
-  //   let cancelled = false;
-  //   connectNDK().then(() => {
-  //     if (!cancelled) setNdkReady(true);
-  //   });
-  //   return () => {
-  //     cancelled = true;
-  //   };
-  // }, []);
-
-  // Auto-lookup if initialPubkey is provided
+  // Auto-lookup if a pubkey is in the URL
   useEffect(() => {
-    // if (initialPubkey && ndkReady) {
-    doLookup(initialPubkey);
-    // }
+    if (urlPubkey) {
+      setInputValue(urlPubkey);
+      doLookup(urlPubkey);
+    } else {
+      setInputValue("");
+      setPubkey(null);
+      setProfile(null);
+      setEvents([]);
+      setError(null);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPubkey]);
+  }, [urlPubkey]);
 
   /**
    * Resolve the input to a hex pubkey.

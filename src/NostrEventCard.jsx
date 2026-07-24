@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getNDK } from "./ndk";
 /**
  * Format a Unix timestamp (in seconds) to a human-readable relative time string.
@@ -67,17 +68,12 @@ function getFavorites() {
  * NostrEventCard — a React component that displays a single Nostr event.
  *
  * Props:
- *   event                - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
- *   showMeta             - Whether to show pubkey, id, kind metadata (default: true)
- *   confirmUnfav         - Whether to show a confirmation modal before unfavouriting (default: false)
- *   onNavigateToProfile  - Callback when the user clicks an author avatar/name, receives (pubkey)
+ *   event          - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
+ *   showMeta       - Whether to show pubkey, id, kind metadata (default: true)
+ *   confirmUnfav   - Whether to show a confirmation modal before unfavouriting (default: false)
  */
-export default function NostrEventCard({
-  event,
-  showMeta = true,
-  confirmUnfav = false,
-  onNavigateToProfile,
-}) {
+export default function NostrEventCard({ event, showMeta = true }) {
+  const navigate = useNavigate();
   const [authorMeta, setAuthorMeta] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -193,8 +189,9 @@ export default function NostrEventCard({
           className="nostr-card__author"
           onClick={(e) => {
             e.stopPropagation();
-            if (onNavigateToProfile && pubkey) {
-              onNavigateToProfile(pubkey);
+
+            if (pubkey) {
+              navigate(`/profile/${pubkey}`);
             }
           }}
           title="View profile"
