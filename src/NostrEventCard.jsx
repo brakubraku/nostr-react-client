@@ -37,6 +37,19 @@ function extractImageUrls(content) {
 }
 
 /**
+ * Strip image URLs from content for display purposes.
+ */
+function stripImageUrls(content) {
+  if (!content) return "";
+  return content
+    .replace(
+      /https?:\/\/[^\s]+?\.(?:png|jpe?g|gif|webp|bmp|svg)(?:\?[^\s]*)?\s*/gi,
+      "",
+    )
+    .trim();
+}
+
+/**
  * Get the kind label for common Nostr event kinds.
  */
 function getKindLabel(kind) {
@@ -90,6 +103,7 @@ export default function NostrEventCard({ event, showMeta = true }) {
   const [expanded, setExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showAllImages, setShowAllImages] = useState(false);
   const ndk = getNDK();
 
   // Check if this event is already in favorites on mount
@@ -186,12 +200,24 @@ export default function NostrEventCard({ event, showMeta = true }) {
   const { id, kind, pubkey, content, created_at, tags } = event;
 
   // Determine content display
+  const cleanContent = stripImageUrls(content || "");
   const contentPreview =
-    content && content.length > 280 ? content.slice(0, 280) + "…" : content;
+    cleanContent && cleanContent.length > 280
+      ? cleanContent.slice(0, 280) + "…"
+      : cleanContent;
 
   // Extract some tag info
   const eTags = (tags || []).filter((t) => t[0] === "e");
   const pTags = (tags || []).filter((t) => t[0] === "p");
+
+  // Image handling
+  const imageUrls = extractImageUrls(content);
+  const [randomImage] = useState(() => {
+    if (imageUrls.length > 1) {
+      return imageUrls[Math.floor(Math.random() * imageUrls.length)];
+    }
+    return imageUrls[0] || null;
+  });
 
   return (
     <div className="nostr-card" onClick={() => setExpanded(!expanded)}>
@@ -270,33 +296,61 @@ export default function NostrEventCard({ event, showMeta = true }) {
       {/* Event content */}
       <div className="nostr-card__content">
         {kind === 1 || kind === 30023 || !kind ? (
-          <p>{expanded ? content : contentPreview}</p>
+          <p>{expanded ? cleanContent : contentPreview}</p>
         ) : kind === 7 ? (
           <p className="nostr-card__reaction">{content || "❤️"}</p>
         ) : (
-          <p>{expanded ? content : contentPreview}</p>
+          <p>{expanded ? cleanContent : contentPreview}</p>
         )}
       </div>
 
       {/* Images extracted from content */}
-      {extractImageUrls(content).length > 0 && (
+
+      {imageUrls.length > 0 && (
         <div className="nostr-card__images">
-          {extractImageUrls(content).map((url, i) => (
-            <img
-              key={i}
-              className="nostr-card__image"
-              src={url}
-              alt={`Image ${i + 1}`}
-              loading="lazy"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(url, "_blank", "noopener,noreferrer");
-              }}
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
-            />
-          ))}
+          {showAllImages || imageUrls.length === 1 ? (
+            imageUrls.map((url, i) => (
+              <img
+                key={i}
+                className="nostr-card__image"
+                src={url}
+                alt={`Image ${i + 1}`}
+                loading="lazy"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(url, "_blank", "noopener,noreferrer");
+                }}
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
+              />
+            ))
+          ) : (
+            <>
+              <img
+                className="nostr-card__image"
+                src={randomImage}
+                alt="Image"
+                loading="lazy"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(randomImage, "_blank", "noopener,noreferrer");
+                }}
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
+              />
+              <button
+                className="nostr-card__show-all-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAllImages(true);
+                }}
+              >
+                Show all {imageUrls.length} images
+              </button>
+            </>
+          )}
         </div>
       )}
 
