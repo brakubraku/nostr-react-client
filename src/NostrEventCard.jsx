@@ -25,6 +25,18 @@ function truncateHex(hex, chars = 8) {
 }
 
 /**
+ * Extract image URLs from text content.
+ * Finds http/https URLs ending in common image extensions.
+ */
+function extractImageUrls(content) {
+  if (!content) return [];
+  const imageRegex =
+    /https?:\/\/[^\s]+?\.(?:png|jpe?g|gif|webp|bmp|svg)(?:\?[^\s]*)?/gi;
+  const matches = content.match(imageRegex);
+  return matches ? [...new Set(matches)] : [];
+}
+
+/**
  * Get the kind label for common Nostr event kinds.
  */
 function getKindLabel(kind) {
@@ -265,6 +277,28 @@ export default function NostrEventCard({ event, showMeta = true }) {
           <p>{expanded ? content : contentPreview}</p>
         )}
       </div>
+
+      {/* Images extracted from content */}
+      {extractImageUrls(content).length > 0 && (
+        <div className="nostr-card__images">
+          {extractImageUrls(content).map((url, i) => (
+            <img
+              key={i}
+              className="nostr-card__image"
+              src={url}
+              alt={`Image ${i + 1}`}
+              loading="lazy"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(url, "_blank", "noopener,noreferrer");
+              }}
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Event metadata (collapsible) */}
       {showMeta && expanded && (
