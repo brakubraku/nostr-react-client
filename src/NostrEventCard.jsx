@@ -37,16 +37,36 @@ function extractImageUrls(content) {
 }
 
 /**
- * Strip image URLs from content for display purposes.
+
+ * Extract video URLs from text content.
+ * Supports direct video files (.mp4, .webm, .ogg) and YouTube/Vimeo links.
  */
-function stripImageUrls(content) {
+
+function extractVideoUrls(content) {
+  if (!content) return [];
+  const videoRegex =
+    /(?:https?:\/\/[^\s]+?\.(?:mp4|webm|ogg)(?:\?[^\s]*)?|https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/)[^\s]+)/gi;
+  const matches = content.match(videoRegex);
+  return matches ? [...new Set(matches)] : [];
+}
+
+/**
+ * Strip image and video URLs from content for display.
+ */
+function stripMediaUrls(content) {
   if (!content) return "";
-  return content
-    .replace(
-      /https?:\/\/[^\s]+?\.(?:png|jpe?g|gif|webp|bmp|svg)(?:\?[^\s]*)?\s*/gi,
-      "",
-    )
-    .trim();
+
+  // Remove image URLs
+  let result = content.replace(
+    /https?:\/\/[^\s]+?\.(?:png|jpe?g|gif|webp|bmp|svg)(?:\?[^\s]*)?\s*/gi,
+    "",
+  );
+  // Remove video URLs
+  result = result.replace(
+    /(?:https?:\/\/[^\s]+?\.(?:mp4|webm|ogg)(?:\?[^\s]*)?|https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/)[^\s]*)\s*/gi,
+    "",
+  );
+  return result.trim();
 }
 
 /**
@@ -104,6 +124,7 @@ export default function NostrEventCard({ event, showMeta = true }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAllImages, setShowAllImages] = useState(false);
+  const [showAllVideos, setShowAllVideos] = useState(false);
   const ndk = getNDK();
 
   // Check if this event is already in favorites on mount
@@ -200,7 +221,7 @@ export default function NostrEventCard({ event, showMeta = true }) {
   const { id, kind, pubkey, content, created_at, tags } = event;
 
   // Determine content display
-  const cleanContent = stripImageUrls(content || "");
+  const cleanContent = stripMediaUrls(content || "");
   const contentPreview =
     cleanContent && cleanContent.length > 280
       ? cleanContent.slice(0, 280) + "…"
@@ -217,6 +238,15 @@ export default function NostrEventCard({ event, showMeta = true }) {
       return imageUrls[Math.floor(Math.random() * imageUrls.length)];
     }
     return imageUrls[0] || null;
+  });
+
+  // Video handling
+  const videoUrls = extractVideoUrls(content);
+  const [randomVideo] = useState(() => {
+    if (videoUrls.length > 1) {
+      return videoUrls[Math.floor(Math.random() * videoUrls.length)];
+    }
+    return videoUrls[0] || null;
   });
 
   return (
@@ -348,6 +378,47 @@ export default function NostrEventCard({ event, showMeta = true }) {
                 }}
               >
                 Show all {imageUrls.length} images
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Videos extracted from content */}
+      {videoUrls.length > 0 && (
+        <div className="nostr-card__videos">
+          {showAllVideos || videoUrls.length === 1 ? (
+            videoUrls.map((url, i) => (
+              <video
+                key={i}
+                className="nostr-card__video"
+                src={url}
+                controls
+                preload="metadata"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Your browser does not support the video tag.
+              </video>
+            ))
+          ) : (
+            <>
+              <video
+                className="nostr-card__video"
+                src={randomVideo}
+                controls
+                preload="metadata"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Your browser does not support the video tag.
+              </video>
+              <button
+                className="nostr-card__show-all-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAllVideos(true);
+                }}
+              >
+                Show all {videoUrls.length} videos
               </button>
             </>
           )}

@@ -229,6 +229,23 @@
   border-color: var(--accent);
 }
 
+/* --- Inline Videos --- */
+.nostr-card__videos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.nostr-card__video {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: #000;
+}
+
 /* --- Collapsible metadata --- */
 .nostr-card__meta {
   background: var(--code-bg);
