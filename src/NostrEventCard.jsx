@@ -117,7 +117,11 @@ function getFavorites() {
  *   showMeta       - Whether to show pubkey, id, kind metadata (default: true)
  *   confirmUnfav   - Whether to show a confirmation modal before unfavouriting (default: false)
  */
-export default function NostrEventCard({ event, showMeta = true }) {
+export default function NostrEventCard({
+  event,
+  showMeta = true,
+  confirmUnfav,
+}) {
   const navigate = useNavigate();
   const [authorMeta, setAuthorMeta] = useState(null);
   const [expanded, setExpanded] = useState(false);
