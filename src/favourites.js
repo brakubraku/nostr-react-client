@@ -1,54 +1,54 @@
-const STORAGE_KEY = "nostr-favorites";
+const STORAGE_KEY = "nostr-favourites";
 
-let favorites = [];
+let favourites = [];
 
 // Observable subscribers
 const subscribers = new Set();
 
 /**
- * Load favorites from localStorage into memory.
+ * Load favourites from localStorage into memory.
  * Called once on module load to initialize the singleton.
  */
-function loadFavorites() {
+function loadFavourites() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        favorites = parsed;
+        favourites = parsed;
       } else {
-        console.warn("favorites: stored data is not an array, resetting");
-        favorites = [];
+        console.warn("favourites: stored data is not an array, resetting");
+        favourites = [];
       }
     }
   } catch (err) {
-    console.error("favorites: failed to load from localStorage", err);
-    favorites = [];
+    console.error("favourites: failed to load from localStorage", err);
+    favourites = [];
   }
 }
 
 function notifySubscribers() {
-  const value = getFavorites();
+  const value = getFavourites();
   for (const cb of subscribers) {
     cb(value);
   }
 }
 
 /**
- * Persist the current favorites array to localStorage and notify
- * subscribers (observers registered via getFavorites.subscribe).
+ * Persist the current favourites array to localStorage and notify
+ * subscribers (observers registered via getFavourites.subscribe).
  */
-function saveFavorites() {
+function saveFavourites() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(favourites));
     notifySubscribers();
   } catch (err) {
-    console.error("favorites: failed to save to localStorage", err);
+    console.error("favourites: failed to save to localStorage", err);
   }
 }
 
 // Initialize on module load
-loadFavorites();
+loadFavourites();
 
 // ─── Public API ────────────────────────────────────────────────────────────
 
@@ -58,61 +58,61 @@ loadFavorites();
  *
  * @returns {Array<{id: string, kind?: number, pubkey?: string, content?: string, created_at?: number, tags?: string[][]}>}
  */
-export function getFavorites() {
-  return [...favorites];
+export function getFavourites() {
+  return [...favourites];
 }
 
 /**
- * Subscribe to changes to the favorites list.
- * The callback receives the updated favorites array each time a change occurs.
+ * Subscribe to changes to the favourites list.
+ * The callback receives the updated favourites array each time a change occurs.
  * Returns an unsubscribe function.
  *
- * @param {(favorites: Array) => void} callback
+ * @param {(favourites: Array) => void} callback
  * @returns {() => void} unsubscribe
  */
-getFavorites.subscribe = function (callback) {
+getFavourites.subscribe = function (callback) {
   subscribers.add(callback);
   return () => {
     subscribers.delete(callback);
   };
 };
 /**
- * Check if an event (by its id) is already in the favorites list.
+ * Check if an event (by its id) is already in the favourites list.
  * @param {string} eventId
  * @returns {boolean}
  */
 export function isFavorite(eventId) {
-  return favorites.some((fav) => fav.id === eventId);
+  return favourites.some((fav) => fav.id === eventId);
 }
 
 /**
- * Add an event to favorites. If already present, does nothing.
+ * Add an event to favourites. If already present, does nothing.
  * Persists to localStorage after change.
  * @param {{ id: string, kind?: number, pubkey?: string, content?: string, created_at?: number, tags?: string[][] }} eventData
  * @returns {boolean} whether the event was added (true) or already existed (false)
  */
 export function addFavorite(eventData) {
-  if (favorites.some((fav) => fav.id === eventData.id)) {
+  if (favourites.some((fav) => fav.id === eventData.id)) {
     return false;
   }
-  favorites.unshift(eventData);
-  saveFavorites();
+  favourites.unshift(eventData);
+  saveFavourites();
   return true;
 }
 
 /**
- * Remove an event from favorites by its id. If not present, does nothing.
+ * Remove an event from favourites by its id. If not present, does nothing.
  * Persists to localStorage after change.
  * @param {string} eventId
  * @returns {boolean} whether the event was removed (true) or not found (false)
  */
 export function removeFavorite(eventId) {
-  const index = favorites.findIndex((fav) => fav.id === eventId);
+  const index = favourites.findIndex((fav) => fav.id === eventId);
   if (index === -1) {
     return false;
   }
-  favorites.splice(index, 1);
-  saveFavorites();
+  favourites.splice(index, 1);
+  saveFavourites();
   return true;
 }
 
@@ -132,11 +132,11 @@ export function toggleFavorite(eventData) {
 }
 
 /**
- * Remove all favorites.
+ * Remove all favourites.
  * Persists to localStorage after change.
  */
-export function clearFavorites() {
-  if (favorites.length === 0) return;
-  favorites = [];
-  saveFavorites();
+export function clearFavourites() {
+  if (favourites.length === 0) return;
+  favourites = [];
+  saveFavourites();
 }

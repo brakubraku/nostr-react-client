@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNDK } from "./ndk";
 import {
-  getFavorites,
+  getFavourites,
   isFavorite,
   toggleFavorite as toggleFav,
   removeFavorite,
-} from "./favorites";
+} from "./favourites";
 /**
  * Format a Unix timestamp (in seconds) to a human-readable relative time string.
  */
@@ -125,17 +125,17 @@ export default function NostrEventCard({
   const [showAllVideos, setShowAllVideos] = useState(false);
   const ndk = getNDK();
 
-  // Check if this event is already in favorites on mount and when external changes happen
+  // Check if this event is already in favourites on mount and when external changes happen
   useEffect(() => {
     setIsFav(isFavorite(event?.id));
   }, [event?.id]);
 
-  // Subscribe to the favorites observable (reacts to same-tab changes)
+  // Subscribe to the favourites observable (reacts to same-tab changes)
   useEffect(() => {
     function handleFavChange() {
       setIsFav(isFavorite(event?.id));
     }
-    const unsubscribe = getFavorites.subscribe(handleFavChange);
+    const unsubscribe = getFavourites.subscribe(handleFavChange);
     // Also listen for changes from other tabs (localStorage sync)
     window.addEventListener("storage", handleFavChange);
     return () => {
@@ -169,7 +169,7 @@ export default function NostrEventCard({
   }, [ndk, event?.pubkey]);
 
   /**
-   * Toggle this event's favorite status using the favorites module.
+   * Toggle this event's favorite status using the favourites module.
    */
   function toggleFavorite(e) {
     e.stopPropagation(); // Prevent card expansion when clicking the button
@@ -193,14 +193,14 @@ export default function NostrEventCard({
     setIsFav(nowFav);
   }
 
-  function removeFromFavorites() {
+  function removeFromFavourites() {
     removeFavorite(event.id);
     setIsFav(false);
   }
 
   function confirmRemove(e) {
     e.stopPropagation();
-    removeFromFavorites();
+    removeFromFavourites();
     setShowConfirmModal(false);
   }
 
@@ -294,7 +294,7 @@ export default function NostrEventCard({
           <button
             className={`nostr-card__fav-btn ${isFav ? "nostr-card__fav-btn--active" : ""}`}
             onClick={toggleFavorite}
-            title={isFav ? "Remove from favorites" : "Add to favorites"}
+            title={isFav ? "Remove from favourites" : "Add to favourites"}
           >
             <svg
               width="16"

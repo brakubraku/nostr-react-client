@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getFavorites, clearFavorites } from "./favorites";
+import { getFavourites, clearFavourites } from "./favourites";
 import NostrEventCard from "./NostrEventCard";
 
 /**
@@ -13,14 +13,14 @@ export default function NostrFavourites() {
 
   useEffect(() => {
     function loadFavourites() {
-      setFavourites(getFavorites());
+      setFavourites(getFavourites());
     }
 
     // Load immediately
     loadFavourites();
 
     // Subscribe to the observable (react to changes within the same tab)
-    const unsubscribe = getFavorites.subscribe(loadFavourites);
+    const unsubscribe = getFavourites.subscribe(loadFavourites);
 
     // Also listen for changes from other tabs (localStorage sync)
     window.addEventListener("storage", loadFavourites);
@@ -34,7 +34,7 @@ export default function NostrFavourites() {
    * Remove all favourites via the module.
    */
   function clearAll() {
-    clearFavorites();
+    clearFavourites();
     setFavourites([]);
   }
 
