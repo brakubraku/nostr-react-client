@@ -88,33 +88,6 @@ export default function NostrFeed({
     };
   }, [relayUrls.join(","), JSON.stringify(filter), limit, paused]);
 
-  /**
-   * Load events for a specific user.
-   */
-  const loadUserEvents = useCallback(
-    async (pubkey) => {
-      if (!ndkRef.current) return;
-
-      const ndk = ndkRef.current;
-      const fetchedEvents = await ndk.fetchEvents({
-        authors: [pubkey],
-        kinds: [1],
-        limit: 20,
-      });
-
-      const sorted = [...fetchedEvents].sort(
-        (a, b) => (b.created_at || 0) - (a.created_at || 0),
-      );
-
-      setEvents((prev) => {
-        const existingIds = new Set(prev.map((e) => e.id));
-        const newEvents = sorted.filter((e) => !existingIds.has(e.id));
-        return [...newEvents, ...prev].slice(0, limit);
-      });
-    },
-    [limit],
-  );
-
   return (
     <div className="nostr-feed">
       <div className="nostr-feed__header">
