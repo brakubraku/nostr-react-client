@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNDK } from "./ndk";
+import {
+  getFavorites as getFavs,
+  isFavorite as checkIsFav,
+  toggleFavorite as toggleFav,
+  removeFavorite as removeFav,
+} from "./favorites";
 /**
  * Format a Unix timestamp (in seconds) to a human-readable relative time string.
  */
@@ -98,18 +104,6 @@ function getKindLabel(kind) {
 }
 
 /**
- * Get saved favorites from localStorage.
- */
-function getFavorites() {
-  try {
-    const stored = localStorage.getItem("nostr-favorites");
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-/**
  * NostrEventCard — a React component that displays a single Nostr event.
  *
  * Props:
@@ -125,16 +119,28 @@ export default function NostrEventCard({
   const navigate = useNavigate();
   const [authorMeta, setAuthorMeta] = useState(null);
   const [expanded, setExpanded] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFav, setIsFav] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAllImages, setShowAllImages] = useState(false);
   const [showAllVideos, setShowAllVideos] = useState(false);
   const ndk = getNDK();
 
-  // Check if this event is already in favorites on mount
+  // Check if this event is already in favorites on mount and when external changes happen
   useEffect(() => {
-    const favorites = getFavorites();
-    setIsFavorite(favorites.some((fav) => fav.id === event?.id));
+    setIsFav(checkIsFav(event?.id));
+  }, [event?.id]);
+
+  // Re-check favorites when toggled from elsewhere (e.g., NostrFavourites)
+  useEffect(() => {
+    function handleFavChange() {
+      setIsFav(checkIsFav(event?.id));
+    }
+    window.addEventListener("nostr-favorites-changed", handleFavChange);
+    window.addEventListener("storage", handleFavChange);
+    return () => {
+      window.removeEventListener("nostr-favorites-changed", handleFavChange);
+      window.removeEventListener("storage", handleFavChange);
+    };
   }, [event?.id]);
 
   // Fetch author metadata (kind 0) if we have an NDK instance
@@ -162,18 +168,17 @@ export default function NostrEventCard({
   }, [ndk, event?.pubkey]);
 
   /**
-   * Toggle this event's favorite status in localStorage.
+   * Toggle this event's favorite status using the favorites module.
    */
   function toggleFavorite(e) {
     e.stopPropagation(); // Prevent card expansion when clicking the button
 
     // Show confirmation modal when unfavouriting inside NostrFavourites
-    if (isFavorite && confirmUnfav) {
+    if (isFav && confirmUnfav) {
       setShowConfirmModal(true);
       return;
     }
 
-    const favorites = getFavorites();
     const eventData = {
       id: event.id,
       kind: event.kind,
@@ -183,28 +188,13 @@ export default function NostrEventCard({
       tags: event.tags,
     };
 
-    if (isFavorite) {
-      // Remove from favorites
-      const updated = favorites.filter((fav) => fav.id !== event.id);
-      localStorage.setItem("nostr-favorites", JSON.stringify(updated));
-      setIsFavorite(false);
-    } else {
-      // Add to favorites
-      const updated = [eventData, ...favorites];
-      localStorage.setItem("nostr-favorites", JSON.stringify(updated));
-      setIsFavorite(true);
-    }
-
-    // Dispatch custom event so other components (e.g. NostrFavourites) can refresh
-    window.dispatchEvent(new Event("nostr-favorites-changed"));
+    const nowFav = toggleFav(eventData);
+    setIsFav(nowFav);
   }
 
   function removeFromFavorites() {
-    const favorites = getFavorites();
-    const updated = favorites.filter((fav) => fav.id !== event.id);
-    localStorage.setItem("nostr-favorites", JSON.stringify(updated));
-    setIsFavorite(false);
-    window.dispatchEvent(new Event("nostr-favorites-changed"));
+    removeFav(event.id);
+    setIsFav(false);
   }
 
   function confirmRemove(e) {
@@ -301,20 +291,20 @@ export default function NostrEventCard({
             <span className="nostr-card__kind-badge">{getKindLabel(kind)}</span>
           )}
           <button
-            className={`nostr-card__fav-btn ${isFavorite ? "nostr-card__fav-btn--active" : ""}`}
+            className={`nostr-card__fav-btn ${isFav ? "nostr-card__fav-btn--active" : ""}`}
             onClick={toggleFavorite}
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            title={isFav ? "Remove from favorites" : "Add to favorites"}
           >
             <svg
               width="16"
               height="16"
               viewBox="0 0 24 24"
-              fill={isFavorite ? "currentColor" : "none"}
+              fill={isFav ? "currentColor" : "none"}
               stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
             >
-              {isFavorite ? (
+              {isFav ? (
                 <line x1="5" y1="12" x2="19" y2="12" />
               ) : (
                 <>

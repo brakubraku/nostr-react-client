@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getNDK } from "./ndk";
+import { getFavorites, clearFavorites } from "./favorites";
 import NostrEventCard from "./NostrEventCard";
 
 /**
@@ -10,17 +10,11 @@ import NostrEventCard from "./NostrEventCard";
  */
 export default function NostrFavourites() {
   const [favourites, setFavourites] = useState([]);
-  const ndk = getNDK();
 
-  // Load favourites from localStorage on mount and when storage changes
+  // Load favourites from the module on mount and when storage changes
   useEffect(() => {
     function loadFavourites() {
-      try {
-        const stored = localStorage.getItem("nostr-favorites");
-        setFavourites(stored ? JSON.parse(stored) : []);
-      } catch {
-        setFavourites([]);
-      }
+      setFavourites(getFavorites());
     }
 
     loadFavourites();
@@ -36,10 +30,10 @@ export default function NostrFavourites() {
   }, []);
 
   /**
-   * Remove all favourites.
+   * Remove all favourites via the module.
    */
   function clearAll() {
-    localStorage.removeItem("nostr-favorites");
+    clearFavorites();
     setFavourites([]);
   }
 
