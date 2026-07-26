@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getNDK } from "./ndk";
 import {
-  getFavorites as getFavs,
-  isFavorite as checkIsFav,
+  getFavorites,
+  isFavorite,
   toggleFavorite as toggleFav,
-  removeFavorite as removeFav,
+  removeFavorite,
 } from "./favorites";
 /**
  * Format a Unix timestamp (in seconds) to a human-readable relative time string.
@@ -127,18 +127,19 @@ export default function NostrEventCard({
 
   // Check if this event is already in favorites on mount and when external changes happen
   useEffect(() => {
-    setIsFav(checkIsFav(event?.id));
+    setIsFav(isFavorite(event?.id));
   }, [event?.id]);
 
-  // Re-check favorites when toggled from elsewhere (e.g., NostrFavourites)
+  // Subscribe to the favorites observable (reacts to same-tab changes)
   useEffect(() => {
     function handleFavChange() {
-      setIsFav(checkIsFav(event?.id));
+      setIsFav(isFavorite(event?.id));
     }
-    window.addEventListener("nostr-favorites-changed", handleFavChange);
+    const unsubscribe = getFavorites.subscribe(handleFavChange);
+    // Also listen for changes from other tabs (localStorage sync)
     window.addEventListener("storage", handleFavChange);
     return () => {
-      window.removeEventListener("nostr-favorites-changed", handleFavChange);
+      unsubscribe();
       window.removeEventListener("storage", handleFavChange);
     };
   }, [event?.id]);
@@ -193,7 +194,7 @@ export default function NostrEventCard({
   }
 
   function removeFromFavorites() {
-    removeFav(event.id);
+    removeFavorite(event.id);
     setIsFav(false);
   }
 

@@ -2,6 +2,9 @@ const STORAGE_KEY = "nostr-favorites";
 
 let favorites = [];
 
+// Observable subscribers
+const subscribers = new Set();
+
 /**
  * Load favorites from localStorage into memory.
  * Called once on module load to initialize the singleton.
@@ -24,14 +27,21 @@ function loadFavorites() {
   }
 }
 
+function notifySubscribers() {
+  const value = getFavorites();
+  for (const cb of subscribers) {
+    cb(value);
+  }
+}
+
 /**
- * Persist the current favorites array to localStorage and dispatch a
- * custom event so other components (e.g. NostrFavourites) can react.
+ * Persist the current favorites array to localStorage and notify
+ * subscribers (observers registered via getFavorites.subscribe).
  */
 function saveFavorites() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites));
-    window.dispatchEvent(new Event("nostr-favorites-changed"));
+    notifySubscribers();
   } catch (err) {
     console.error("favorites: failed to save to localStorage", err);
   }
@@ -44,12 +54,28 @@ loadFavorites();
 
 /**
  * Get the current list of favorite event objects (a shallow copy).
+ * This function is also an observable – subscribe to react to changes.
+ *
  * @returns {Array<{id: string, kind?: number, pubkey?: string, content?: string, created_at?: number, tags?: string[][]}>}
  */
 export function getFavorites() {
   return [...favorites];
 }
 
+/**
+ * Subscribe to changes to the favorites list.
+ * The callback receives the updated favorites array each time a change occurs.
+ * Returns an unsubscribe function.
+ *
+ * @param {(favorites: Array) => void} callback
+ * @returns {() => void} unsubscribe
+ */
+getFavorites.subscribe = function (callback) {
+  subscribers.add(callback);
+  return () => {
+    subscribers.delete(callback);
+  };
+};
 /**
  * Check if an event (by its id) is already in the favorites list.
  * @param {string} eventId

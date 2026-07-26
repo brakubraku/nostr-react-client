@@ -11,21 +11,22 @@ import NostrEventCard from "./NostrEventCard";
 export default function NostrFavourites() {
   const [favourites, setFavourites] = useState([]);
 
-  // Load favourites from the module on mount and when storage changes
   useEffect(() => {
     function loadFavourites() {
       setFavourites(getFavorites());
     }
 
+    // Load immediately
     loadFavourites();
 
-    // Re-read favourites when storage is changed from another tab
+    // Subscribe to the observable (react to changes within the same tab)
+    const unsubscribe = getFavorites.subscribe(loadFavourites);
+
+    // Also listen for changes from other tabs (localStorage sync)
     window.addEventListener("storage", loadFavourites);
-    // Re-read favourites when a favourite is toggled in the same tab
-    window.addEventListener("nostr-favorites-changed", loadFavourites);
     return () => {
+      unsubscribe();
       window.removeEventListener("storage", loadFavourites);
-      window.removeEventListener("nostr-favorites-changed", loadFavourites);
     };
   }, []);
 
@@ -59,7 +60,12 @@ export default function NostrFavourites() {
       ) : (
         <div className="nostr-favourites__list">
           {favourites.map((event) => (
-            <NostrEventCard event={event} showMeta={true} confirmUnfav={true} />
+            <NostrEventCard
+              key={event.id}
+              event={event}
+              showMeta={true}
+              confirmUnfav={true}
+            />
           ))}
         </div>
       )}
