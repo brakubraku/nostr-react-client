@@ -86,8 +86,6 @@ export default function NostrFeed({
       if (subRef.current) {
         subRef.current.stop();
       }
-
-      // Don't null ndkRef — the global NDK is shared
     };
   }, [relayUrls.join(","), JSON.stringify(filter), limit, paused]);
 
