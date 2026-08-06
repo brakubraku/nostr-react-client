@@ -43,7 +43,10 @@ export default function NostrFeed({
 
     async function connectAndSubscribe() {
       try {
-        await connectNDK({ explicitRelayUrls: relayUrls });
+        await connectNDK({
+          explicitRelayUrls: relayUrls,
+          timeout: (5 * 10) ^ 6,
+        });
         if (cancelled) return;
         setConnected(true);
         setError(null);
