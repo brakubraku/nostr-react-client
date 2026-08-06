@@ -19,6 +19,11 @@ vi.mock("../favourites", () => ({
 
 // NDK mock is already in setupTests.js
 
+// Mock nsfwjs checks: images are safe by default, tests can opt into NSFW.
+vi.mock("../nsfw", () => ({
+  checkImageUrl: vi.fn(() => Promise.resolve({ nsfw: false, cf: null })),
+}));
+
 describe("NostrEventCard", () => {
   const basicEvent = {
     id: "abc123def456",
@@ -176,6 +181,93 @@ describe("NostrEventCard", () => {
     const img = screen.getByAltText("Image 1");
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("src", imageUrl);
+  });
+
+  it("should blur images classified as NSFW", async () => {
+    const nsfwModule = await import("../nsfw");
+    vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({ nsfw: true, cf: null });
+
+    const imageUrl = "https://example.com/nsfw.png";
+    const eventWithImage = {
+      ...basicEvent,
+      content: `Check this out! ${imageUrl}`,
+    };
+
+    renderWithRouter(<NostrEventCard event={eventWithImage} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Sensitive content/)).toBeInTheDocument();
+    });
+    expect(screen.getByText("Click to reveal")).toBeInTheDocument();
+  });
+
+  it("should reveal a blurred NSFW image when clicked", async () => {
+    const nsfwModule = await import("../nsfw");
+    vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({ nsfw: true, cf: null });
+
+    const imageUrl = "https://example.com/nsfw.jpg";
+    const eventWithImage = {
+      ...basicEvent,
+      content: `Check this out! ${imageUrl}`,
+    };
+
+    renderWithRouter(<NostrEventCard event={eventWithImage} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Sensitive content/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/Sensitive content/));
+
+    expect(screen.queryByText(/Sensitive content/)).not.toBeInTheDocument();
+    expect(screen.getByAltText("Image 1")).toBeInTheDocument();
+  });
+
+  it("should show the error message over the blurred image when the NSFW check fails", async () => {
+    const nsfwModule = await import("../nsfw");
+    vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({
+      nsfw: true,
+      cf: null,
+      error: new Error("CORS blocked"),
+    });
+
+    const imageUrl = "https://example.com/uncheckable.png";
+    const eventWithImage = {
+      ...basicEvent,
+      content: `Check this out! ${imageUrl}`,
+    };
+
+    renderWithRouter(<NostrEventCard event={eventWithImage} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("CORS blocked")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Click to reveal")).toBeInTheDocument();
+    expect(screen.queryByText(/Sensitive content/)).not.toBeInTheDocument();
+  });
+
+  it("should not show the error overlay when the image itself fails to load", async () => {
+    const nsfwModule = await import("../nsfw");
+    vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({
+      nsfw: true,
+      cf: null,
+      error: new Error("image failed to load: https://example.com/missing.png"),
+    });
+
+    const imageUrl = "https://example.com/missing.png";
+    const eventWithImage = {
+      ...basicEvent,
+      content: `Check this out! ${imageUrl}`,
+    };
+
+    renderWithRouter(<NostrEventCard event={eventWithImage} />);
+
+    fireEvent.error(screen.getByAltText("Image 1"));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Sensitive content/)).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText(/image failed to load/)).not.toBeInTheDocument();
   });
 
   it("should show 'Show all N images' button when multiple images", () => {

@@ -3,11 +3,12 @@
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
 
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "mounts": [
+    "source=${localEnv:HOME}/.codex,target=/home/node/.codex,type=bind"
+  ],
   "runArgs": ["--security-opt", "label:disable"],
   "workspaceFolder": "/workspace",
-  "forwardPorts": [
-    5173
-  ],
+  "forwardPorts": [5173],
   "postCreateCommand": "npm install",
   "customizations": {
     "vscode": {

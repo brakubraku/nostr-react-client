@@ -15,6 +15,7 @@ import {
   stripMediaUrls,
   getKindLabel,
 } from "./utils";
+import NsfwCheckedImage from "./NsfwCheckedImage";
 
 
 /**
@@ -249,34 +250,26 @@ export default function NostrEventCard({
         <div className="nostr-card__images">
           {showAllImages || imageUrls.length === 1 ? (
             imageUrls.map((url, i) => (
-              <img
+              <NsfwCheckedImage
                 key={i}
                 className="nostr-card__image"
                 src={url}
                 alt={`Image ${i + 1}`}
-                loading="lazy"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(url, "_blank", "noopener,noreferrer");
-                }}
-                onError={(e) => {
-                  e.target.style.display = "none";
                 }}
               />
             ))
           ) : (
             <>
-              <img
+              <NsfwCheckedImage
                 className="nostr-card__image"
                 src={randomImage}
                 alt="Image"
-                loading="lazy"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(randomImage, "_blank", "noopener,noreferrer");
-                }}
-                onError={(e) => {
-                  e.target.style.display = "none";
                 }}
               />
               <button

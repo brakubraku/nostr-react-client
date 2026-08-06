@@ -58,7 +58,7 @@ function AppLayout() {
                   "wss://nos.lol",
                   "wss://relay.damus.io",
                 ]}
-                filter={{ kinds: [1], limit: 30 }}
+                filter={{ kinds: [30023], limit: 30 }}
                 limit={50}
                 showMeta={true}
               />
