@@ -217,11 +217,11 @@
   filter: blur(18px) saturate(0.6);
 }
 
-.nostr-card__image-wrap--nsfw .nostr-card__classifications {
+.nostr-card__image-wrap .nostr-card__classifications {
   display: none;
 }
 
-.nostr-card__image-wrap--nsfw:hover .nostr-card__classifications {
+.nostr-card__image-wrap:hover .nostr-card__classifications {
   display: block;
 }
 
