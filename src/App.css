@@ -402,6 +402,30 @@
   color: var(--text-h);
 }
 
+.nostr-feed__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nostr-feed__content-type {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nostr-feed__content-type:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
 .nostr-feed__status {
   display: flex;
   align-items: center;

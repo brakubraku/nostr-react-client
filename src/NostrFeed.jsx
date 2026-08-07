@@ -12,6 +12,15 @@ const DEFAULT_RELAYS = [
 ];
 
 /**
+ * Content type options shown in the feed dropdown. Each option maps to the
+ * Nostr event kinds requested from the relays.
+ */
+const CONTENT_TYPE_OPTIONS = [
+  { value: "longform", label: "Long-form content", kinds: [30023] },
+  { value: "notes", label: "Text notes", kinds: [1] },
+];
+
+/**
  * NostrFeed — a React component that subscribes to a Nostr relay and
  * displays a live-updating feed of events.
  *
@@ -20,19 +29,33 @@ const DEFAULT_RELAYS = [
  *   filter    - NDK subscription filter object (default: { kinds: [1], limit: 20 })
  *   limit     - Max number of events to keep in the feed (default: 50)
  *   showMeta  - Passed through to NostrEventCard
+ *   defaultContentType - Content type selected initially (default: "longform")
+ *   contentTypeOptions - Options for the content type dropdown
  */
 export default function NostrFeed({
   relayUrls = DEFAULT_RELAYS,
   filter = { kinds: [1], limit: 20 },
   limit = 50,
   showMeta = true,
+  defaultContentType = "longform",
+  contentTypeOptions = CONTENT_TYPE_OPTIONS,
 }) {
   const [events, setEvents] = useState([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
   const [paused, setPaused] = useState(false);
+  const [contentType, setContentType] = useState(defaultContentType);
   const ndkRef = useRef(null);
   const subRef = useRef(null);
+
+  // Resolve the selected content type and build the subscription filter.
+  // The dropdown overrides any `kinds` from the filter prop; everything else
+  // (e.g. limit) is preserved.
+  const selectedContentType =
+    contentTypeOptions.find((option) => option.value === contentType) ||
+    contentTypeOptions[0];
+  const activeFilter = { ...filter };
+  activeFilter.kinds = selectedContentType.kinds;
 
   // Initialize global NDK and subscribe
   useEffect(() => {
@@ -59,7 +82,7 @@ export default function NostrFeed({
       }
 
       // Subscribe with the provided filter
-      const sub = ndk.subscribe(filter, {
+      const sub = ndk.subscribe(activeFilter, {
         closeOnEose: false,
         onEvent: (event) => {
           if (cancelled) return;
@@ -87,45 +110,60 @@ export default function NostrFeed({
         subRef.current.stop();
       }
     };
-  }, [relayUrls.join(","), JSON.stringify(filter), limit, paused]);
+  }, [relayUrls.join(","), JSON.stringify(activeFilter), limit, paused]);
 
   return (
     <div className="nostr-feed">
       <div className="nostr-feed__header">
         <h2 className="nostr-feed__title">Nostr Feed</h2>
-        <div className="nostr-feed__status">
-          <span
-            className={`nostr-feed__dot ${connected ? "nostr-feed__dot--connected" : "nostr-feed__dot--disconnected"}`}
-          />
-          {connected ? "Connected" : "Disconnected"}
+        <div className="nostr-feed__controls">
+          <select
+            className="nostr-feed__content-type"
+            value={contentType}
+            onChange={(e) => setContentType(e.target.value)}
+            aria-label="Content type"
+            title="Choose what to show in the feed"
+          >
+            {contentTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <div className="nostr-feed__status">
+            <span
+              className={`nostr-feed__dot ${connected ? "nostr-feed__dot--connected" : "nostr-feed__dot--disconnected"}`}
+            />
+            {connected ? "Connected" : "Disconnected"}
+          </div>
+          <button
+            title={paused ? "Resume feed" : "Pause feed"}
+            onClick={() => setPaused((prev) => !prev)}
+          >
+            {paused ? (
+              <svg
+                className="nostr-feed__pause-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+            ) : (
+              <svg
+                className="nostr-feed__pause-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <rect x="6" y="4" width="4" height="16" rx="1" />
+                <rect x="14" y="4" width="4" height="16" rx="1" />
+              </svg>
+            )}
+          </button>
         </div>
-        <button
-          title={paused ? "Resume feed" : "Pause feed"}
-          onClick={() => setPaused((prev) => !prev)}
-        >
-          {paused ? (
-            <svg
-              className="nostr-feed__pause-icon"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
-          ) : (
-            <svg
-              className="nostr-feed__pause-icon"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <rect x="6" y="4" width="4" height="16" rx="1" />
-              <rect x="14" y="4" width="4" height="16" rx="1" />
-            </svg>
-          )}
-        </button>
       </div>
 
       {error && (
