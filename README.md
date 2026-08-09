@@ -1,6 +1,6 @@
 # Clanker driven development
 
-It has cost me 0.51$ to develop this so far.
+Token costs so far: 0.51$
 
 # Run with
 
