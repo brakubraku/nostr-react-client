@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import NostrEventCard from "./NostrEventCard";
+import { getFollows, isFollowing, toggleFollow } from "./follows";
 
 /**
  * NostrProfile — a React component that looks up a Nostr user's profile
@@ -18,8 +19,28 @@ export default function NostrProfile({ ndk }) {
   const [loading, setLoading] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isFollowed, setIsFollowed] = useState(false);
 
   const [sortOrder, setSortOrder] = useState("newest");
+
+  // Check follow status whenever the looked-up pubkey changes
+  useEffect(() => {
+    setIsFollowed(isFollowing(pubkey));
+  }, [pubkey]);
+
+  // Subscribe to the follows observable (reacts to same-tab changes)
+  useEffect(() => {
+    function handleFollowChange() {
+      setIsFollowed(isFollowing(pubkey));
+    }
+    const unsubscribe = getFollows.subscribe(handleFollowChange);
+    // Also listen for changes from other tabs (localStorage sync)
+    window.addEventListener("storage", handleFollowChange);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("storage", handleFollowChange);
+    };
+  }, [pubkey]);
 
   // Auto-lookup if a pubkey is in the URL
   useEffect(() => {
@@ -129,6 +150,20 @@ export default function NostrProfile({ ndk }) {
   }
 
   /**
+   * Toggle this account's follow status using the follows module.
+   */
+  function handleToggleFollow() {
+    const accountData = {
+      pubkey,
+      name: profile?.name,
+      displayName: profile?.displayName,
+      picture: profile?.picture,
+      nip05: profile?.nip05,
+    };
+    setIsFollowed(toggleFollow(accountData));
+  }
+
+  /**
    * Get sorted events based on current sort order.
    */
   const sortedEvents = useCallback(() => {
@@ -211,6 +246,19 @@ export default function NostrProfile({ ndk }) {
                 <div className="nostr-profile__pubkey">
                   <code>{formatPubkey(pubkey)}</code>
                 </div>
+              </div>
+
+              <div className="nostr-profile__follow">
+                <button
+                  className={`nostr-profile__follow-btn ${isFollowed ? "nostr-profile__follow-btn--active" : ""}`}
+                  onClick={handleToggleFollow}
+                  aria-pressed={isFollowed}
+                  title={
+                    isFollowed ? "Unfollow this account" : "Follow this account"
+                  }
+                >
+                  {isFollowed ? "Following" : "Follow"}
+                </button>
               </div>
             </div>
 

@@ -827,6 +827,40 @@
   font-size: 12px;
 }
 
+.nostr-profile__follow {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.nostr-profile__follow-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.nostr-profile__follow-btn:hover {
+  opacity: 0.9;
+}
+
+.nostr-profile__follow-btn--active {
+  background: transparent;
+  color: var(--accent);
+}
+
+.nostr-profile__follow-btn--active:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
 .nostr-profile__about {
   font-size: 14px;
   line-height: 1.6;
