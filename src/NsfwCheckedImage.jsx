@@ -10,6 +10,7 @@ import { checkImageUrl } from "./nsfw";
 export default function NsfwCheckedImage({ src, alt, className, onClick }) {
   const [nsfw, setNsfw] = useState(null);
   const [revealed, setRevealed] = useState(false);
+  // indicated that <img> tag loading failed - in case where the src is unreachable for example
   const [imgFailed, setImgFailed] = useState(false);
 
   useEffect(() => {
@@ -70,7 +71,11 @@ export default function NsfwCheckedImage({ src, alt, className, onClick }) {
             }
           }}
         >
-          {nsfw?.error ? (
+          {!nsfw ? (
+            <span className="nostr-card__nsfw-error">
+              {`NSFW checking in progress...`}
+            </span>
+          ) : nsfw.error ? (
             <span className="nostr-card__nsfw-error">
               {`NSFW checking failed: ${nsfw.error?.message || String(nsfw.error)}`}
             </span>
