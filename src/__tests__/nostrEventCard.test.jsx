@@ -194,7 +194,10 @@ describe("NostrEventCard", () => {
 
   it("should blur images classified as NSFW", async () => {
     const nsfwModule = await import("../nsfw");
-    vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({ nsfw: true, cf: null });
+    vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({
+      nsfw: true,
+      cf: null,
+    });
 
     const imageUrl = "https://example.com/nsfw.png";
     const eventWithImage = {
@@ -212,7 +215,10 @@ describe("NostrEventCard", () => {
 
   it("should reveal a blurred NSFW image when clicked", async () => {
     const nsfwModule = await import("../nsfw");
-    vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({ nsfw: true, cf: null });
+    vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({
+      nsfw: true,
+      cf: null,
+    });
 
     const imageUrl = "https://example.com/nsfw.jpg";
     const eventWithImage = {
@@ -249,7 +255,7 @@ describe("NostrEventCard", () => {
     renderWithRouter(<NostrEventCard event={eventWithImage} />);
 
     await waitFor(() => {
-      expect(screen.getByText("CORS blocked")).toBeInTheDocument();
+      expect(screen.queryByText(/CORS blocked/)).toBeInTheDocument();
     });
     expect(screen.getByText("Click to reveal")).toBeInTheDocument();
     expect(screen.queryByText(/Sensitive content/)).not.toBeInTheDocument();

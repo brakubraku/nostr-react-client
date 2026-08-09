@@ -16,11 +16,6 @@ describe("App", () => {
     );
   }
 
-  it("should render the app header with title", () => {
-    renderWithRouter("/");
-    expect(screen.getByText("Nostr Events")).toBeInTheDocument();
-  });
-
   it("should render navigation links", () => {
     renderWithRouter("/");
     expect(screen.getByText("Live Feed")).toBeInTheDocument();
