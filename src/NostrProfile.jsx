@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { getNDK } from "./ndk";
 import NostrEventCard from "./NostrEventCard";
 
 /**
@@ -10,7 +9,7 @@ import NostrEventCard from "./NostrEventCard";
  * Reads the pubkey from the URL path `/profile/:pubkey`,
  * or lets the user enter one manually via a search input.
  */
-export default function NostrProfile() {
+export default function NostrProfile({ ndk }) {
   const { pubkey: urlPubkey } = useParams();
   const [inputValue, setInputValue] = useState(urlPubkey || "");
   const [pubkey, setPubkey] = useState(null);
@@ -69,8 +68,6 @@ export default function NostrProfile() {
     setProfile(null);
     setEvents([]);
 
-    const ndk = getNDK();
-
     try {
       const resolved = await resolvePubkey(input);
       if (!resolved) {
@@ -103,7 +100,6 @@ export default function NostrProfile() {
   async function fetchUserEvents(pubkeyHex) {
     if (!pubkeyHex) return;
 
-    const ndk = getNDK();
     setEventsLoading(true);
 
     try {
@@ -319,7 +315,12 @@ export default function NostrProfile() {
           {!eventsLoading && events.length > 0 && (
             <div className="nostr-profile__events-list">
               {sortedEvents().map((event) => (
-                <NostrEventCard key={event.id} event={event} showMeta={true} />
+                <NostrEventCard
+                  key={event.id}
+                  event={event}
+                  showMeta={true}
+                  ndk={ndk}
+                />
               ))}
             </div>
           )}

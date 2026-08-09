@@ -1,12 +1,23 @@
+import { cloneElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
 import NostrEventCard from "../NostrEventCard";
 
-// Helper to render with router context
+// Mock NDK instance passed via props (author metadata fetch)
+const mockNdk = {
+  getUser: vi.fn(() => ({
+    fetchProfile: vi.fn().mockResolvedValue(undefined),
+    profile: {},
+  })),
+};
+
+// Helper to render with router context, injecting the ndk prop
 function renderWithRouter(element) {
-  return render(<BrowserRouter>{element}</BrowserRouter>);
+  return render(
+    <BrowserRouter>{cloneElement(element, { ndk: mockNdk })}</BrowserRouter>,
+  );
 }
 
 // Mock the favourites module
@@ -16,8 +27,6 @@ vi.mock("../favourites", () => ({
   toggleFavorite: vi.fn(() => true),
   removeFavorite: vi.fn(),
 }));
-
-// NDK mock is already in setupTests.js
 
 // Mock nsfwjs checks: images are safe by default, tests can opt into NSFW.
 vi.mock("../nsfw", () => ({

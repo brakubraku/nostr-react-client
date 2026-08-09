@@ -1,11 +1,37 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
+import { connectNDK, getNDK } from "./ndk";
 import NostrFeed from "./NostrFeed";
 import NostrEventViewer from "./NostrEventViewer";
 import NostrFavourites from "./NostrFavourites";
 import NostrProfile from "./NostrProfile";
 import "./App.css";
 
+// Relay set used for the live feed and the shared NDK instance. App is the
+// single owner of the NDK instance; every other component receives it via
+// the `ndk` prop instead of importing the ndk module.
+const FEED_RELAYS = [
+  "wss://relay.primal.net",
+  "wss://nos.lol",
+  "wss://relay.damus.io",
+];
+
+const ndk = getNDK({ explicitRelayUrls: FEED_RELAYS });
+
 function AppLayout() {
+  // Connect the shared NDK instance once when the app mounts. connectNDK
+  // reuses the instance created above; failures are logged by the ndk module,
+  // and the catch here just prevents an unhandled promise rejection.
+  useEffect(() => {
+    let cancelled = false;
+    connectNDK({ explicitRelayUrls: FEED_RELAYS }).catch((err) => {
+      if (!cancelled) console.error("Failed to connect shared NDK:", err);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="app">
       <header className="app__header">
@@ -53,11 +79,8 @@ function AppLayout() {
             path="/"
             element={
               <NostrFeed
-                relayUrls={[
-                  "wss://relay.primal.net",
-                  "wss://nos.lol",
-                  "wss://relay.damus.io",
-                ]}
+                ndk={ndk}
+                relayUrls={FEED_RELAYS}
                 filter={{ kinds: [30023], limit: 30 }}
                 limit={50}
                 showMeta={true}
@@ -68,15 +91,16 @@ function AppLayout() {
             path="/viewer"
             element={
               <NostrEventViewer
+                ndk={ndk}
                 mode="single"
                 relayUrls={["wss://relay.primal.net"]}
               />
             }
           />
-          <Route path="/profile" element={<NostrProfile />} />
-          <Route path="/profile/:pubkey" element={<NostrProfile />} />
+          <Route path="/profile" element={<NostrProfile ndk={ndk} />} />
+          <Route path="/profile/:pubkey" element={<NostrProfile ndk={ndk} />} />
 
-          <Route path="/favourites" element={<NostrFavourites />} />
+          <Route path="/favourites" element={<NostrFavourites ndk={ndk} />} />
         </Routes>
       </main>
     </div>

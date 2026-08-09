@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getNDK, connectNDK } from "./ndk";
 import NostrEventCard from "./NostrEventCard";
 
 /**
@@ -25,6 +24,7 @@ const CONTENT_TYPE_OPTIONS = [
  * displays a live-updating feed of events.
  *
  * Props:
+ *   ndk       - Shared NDK instance (provided by App)
  *   relayUrls - Array of relay WebSocket URLs (default: see DEFAULT_RELAYS)
  *   filter    - NDK subscription filter object (default: { kinds: [1], limit: 20 })
  *   limit     - Max number of events to keep in the feed (default: 50)
@@ -33,6 +33,7 @@ const CONTENT_TYPE_OPTIONS = [
  *   contentTypeOptions - Options for the content type dropdown
  */
 export default function NostrFeed({
+  ndk,
   relayUrls = DEFAULT_RELAYS,
   filter = { kinds: [1], limit: 20 },
   limit = 50,
@@ -45,7 +46,6 @@ export default function NostrFeed({
   const [error, setError] = useState(null);
   const [paused, setPaused] = useState(false);
   const [contentType, setContentType] = useState(defaultContentType);
-  const ndkRef = useRef(null);
   const subRef = useRef(null);
 
   // Resolve the selected content type and build the subscription filter.
@@ -57,19 +57,15 @@ export default function NostrFeed({
   const activeFilter = { ...filter };
   activeFilter.kinds = selectedContentType.kinds;
 
-  // Initialize global NDK and subscribe
+  // Subscribe using the shared NDK instance passed via props
   useEffect(() => {
-    const ndk = getNDK({ explicitRelayUrls: relayUrls });
-    ndkRef.current = ndk;
+    if (!ndk) return;
 
     let cancelled = false;
 
     async function connectAndSubscribe() {
       try {
-        await connectNDK({
-          explicitRelayUrls: relayUrls,
-          timeout: (5 * 10) ^ 6,
-        });
+        await ndk.connect((5 * 10) ^ 6);
         if (cancelled) return;
         setConnected(true);
         setError(null);
@@ -110,7 +106,7 @@ export default function NostrFeed({
         subRef.current.stop();
       }
     };
-  }, [relayUrls.join(","), JSON.stringify(activeFilter), limit, paused]);
+  }, [ndk, relayUrls.join(","), JSON.stringify(activeFilter), limit, paused]);
 
   return (
     <div className="nostr-feed">
@@ -186,7 +182,12 @@ export default function NostrFeed({
         )}
 
         {events.map((event) => (
-          <NostrEventCard key={event.id} event={event} showMeta={showMeta} />
+          <NostrEventCard
+            key={event.id}
+            event={event}
+            showMeta={showMeta}
+            ndk={ndk}
+          />
         ))}
       </div>
 

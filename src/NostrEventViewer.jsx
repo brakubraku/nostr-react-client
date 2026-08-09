@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { getNDK, connectNDK } from "./ndk";
 import NostrEventCard from "./NostrEventCard";
 import NostrFeed from "./NostrFeed";
 
@@ -10,11 +9,13 @@ import NostrFeed from "./NostrFeed";
  * 2. Browse a live feed of events
  *
  * Props:
+ *   ndk       - Shared NDK instance (provided by App)
  *   eventId   - Fetch and display a single event by ID (optional)
  *   relayUrls - Array of relay WebSocket URLs (optional)
  *   mode      - "single" | "feed" — display mode (default: "feed")
  */
 export default function NostrEventViewer({
+  ndk,
   eventId,
   relayUrls = ["wss://relay.primal.net"],
   mode,
@@ -22,26 +23,26 @@ export default function NostrEventViewer({
   const [singleEvent, setSingleEvent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
-  const [ndk, setNdk] = useState(null);
+  const [connected, setConnected] = useState(false);
 
-  // Initialize global NDK
+  // Connect the shared NDK instance passed via props
   useEffect(() => {
-    const ndkInstance = getNDK({ explicitRelayUrls: relayUrls });
+    if (!ndk) return;
 
     let cancelled = false;
 
-    connectNDK({ explicitRelayUrls: relayUrls }).then(() => {
-      if (!cancelled) setNdk(ndkInstance);
+    ndk.connect().then(() => {
+      if (!cancelled) setConnected(true);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [relayUrls.join(",")]);
+  }, [ndk, relayUrls.join(",")]);
 
   // Fetch a single event by ID if eventId is provided
   useEffect(() => {
-    if (!eventId || !ndk) return;
+    if (!eventId || !ndk || !connected) return;
 
     let cancelled = false;
 
@@ -74,7 +75,7 @@ export default function NostrEventViewer({
     return () => {
       cancelled = true;
     };
-  }, [eventId, ndk]);
+  }, [eventId, ndk, connected]);
 
   // --- Render ---
 
@@ -96,7 +97,7 @@ export default function NostrEventViewer({
         )}
 
         {singleEvent && !loading && (
-          <NostrEventCard event={singleEvent} showMeta={true} />
+          <NostrEventCard event={singleEvent} showMeta={true} ndk={ndk} />
         )}
 
         {!eventId && !loading && (
@@ -110,5 +111,5 @@ export default function NostrEventViewer({
 
   // Default: feed mode
 
-  return <NostrFeed relayUrls={relayUrls} showMeta={true} />;
+  return <NostrFeed relayUrls={relayUrls} showMeta={true} ndk={ndk} />;
 }

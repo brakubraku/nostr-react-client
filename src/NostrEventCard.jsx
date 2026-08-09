@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNDK } from "./ndk";
 import {
   getFavourites,
   isFavorite,
@@ -23,11 +22,13 @@ import NsfwCheckedImage from "./NsfwCheckedImage";
  *
  * Props:
  *   event          - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
+ *   ndk            - Shared NDK instance (provided by App), used for author metadata
  *   showMeta       - Whether to show pubkey, id, kind metadata (default: true)
  *   confirmUnfav   - Whether to show a confirmation modal before unfavouriting (default: false)
  */
 export default function NostrEventCard({
   event,
+  ndk,
   showMeta = true,
   confirmUnfav,
 }) {
@@ -38,7 +39,6 @@ export default function NostrEventCard({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAllImages, setShowAllImages] = useState(false);
   const [showAllVideos, setShowAllVideos] = useState(false);
-  const ndk = getNDK();
 
   // Check if this event is already in favourites on mount and when external changes happen
   useEffect(() => {

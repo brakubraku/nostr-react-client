@@ -7,6 +7,7 @@ vi.mock("./ndk", () => ({
       fetchProfile: vi.fn().mockResolvedValue(undefined),
       profile: {},
     })),
+    connect: vi.fn().mockResolvedValue(undefined),
     subscribe: vi.fn(() => ({
       on: vi.fn(),
       stop: vi.fn(),

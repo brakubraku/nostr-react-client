@@ -23,6 +23,7 @@ export function getNDK(options = {}) {
       aiGuardrails: options.aiGuardrails ?? true,
     });
   }
+
   return ndkInstance;
 }
 

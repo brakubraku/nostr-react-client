@@ -7,8 +7,11 @@ import NostrEventCard from "./NostrEventCard";
  *
  * Readers can remove events from favourites by clicking the heart button
  * on each NostrEventCard, or clear all favourites with the clear button.
+ *
+ * Props:
+ *   ndk - Shared NDK instance (provided by App), forwarded to NostrEventCard
  */
-export default function NostrFavourites() {
+export default function NostrFavourites({ ndk }) {
   const [favourites, setFavourites] = useState([]);
 
   useEffect(() => {
@@ -65,6 +68,7 @@ export default function NostrFavourites() {
               event={event}
               showMeta={true}
               confirmUnfav={true}
+              ndk={ndk}
             />
           ))}
         </div>

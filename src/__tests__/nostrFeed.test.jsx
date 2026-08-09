@@ -5,14 +5,14 @@ import NostrFeed from "../NostrFeed";
 // Use a stable NDK mock so we can inspect the filters passed to subscribe.
 const mocks = vi.hoisted(() => {
   const subscribe = vi.fn(() => ({ stop: vi.fn() }));
-  return { subscribe, ndk: { subscribe } };
+  return {
+    subscribe,
+    ndk: {
+      connect: vi.fn().mockResolvedValue(undefined),
+      subscribe,
+    },
+  };
 });
-
-vi.mock("../ndk", () => ({
-  getNDK: vi.fn(() => mocks.ndk),
-  connectNDK: vi.fn().mockResolvedValue(undefined),
-  disconnectNDK: vi.fn(),
-}));
 
 describe("NostrFeed content type selector", () => {
   beforeEach(() => {
@@ -20,7 +20,7 @@ describe("NostrFeed content type selector", () => {
   });
 
   it("renders the dropdown with all content type options and defaults to long-form", () => {
-    render(<NostrFeed />);
+    render(<NostrFeed ndk={mocks.ndk} />);
     const select = screen.getByLabelText("Content type");
     expect(select).toHaveValue("longform");
     expect(
@@ -29,13 +29,13 @@ describe("NostrFeed content type selector", () => {
   });
 
   it("subscribes to long-form content (kind 30023) by default", async () => {
-    render(<NostrFeed />);
+    render(<NostrFeed ndk={mocks.ndk} />);
     await waitFor(() => expect(mocks.subscribe).toHaveBeenCalled());
     expect(mocks.subscribe.mock.calls.at(-1)[0].kinds).toEqual([30023]);
   });
 
   it("re-subscribes with text notes (kind 1) when selected", async () => {
-    render(<NostrFeed />);
+    render(<NostrFeed ndk={mocks.ndk} />);
     await waitFor(() => expect(mocks.subscribe).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText("Content type"), {
@@ -48,7 +48,7 @@ describe("NostrFeed content type selector", () => {
   });
 
   it("re-subscribes without a kinds restriction for all content", async () => {
-    render(<NostrFeed />);
+    render(<NostrFeed ndk={mocks.ndk} />);
     await waitFor(() => expect(mocks.subscribe).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText("Content type"), {
@@ -61,7 +61,9 @@ describe("NostrFeed content type selector", () => {
   });
 
   it("keeps the rest of the filter (e.g. limit) when changing content type", async () => {
-    render(<NostrFeed filter={{ kinds: [30023], limit: 30 }} />);
+    render(
+      <NostrFeed ndk={mocks.ndk} filter={{ kinds: [30023], limit: 30 }} />,
+    );
     await waitFor(() => expect(mocks.subscribe).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText("Content type"), {
