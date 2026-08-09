@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import NostrProfile from "../NostrProfile";
 
@@ -71,7 +72,7 @@ describe("NostrProfile follow button", () => {
     renderProfile();
 
     const button = await screen.findByRole("button", { name: "Follow" });
-    fireEvent.click(button);
+    await userEvent.click(button);
 
     expect(toggleFollow).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -82,6 +83,7 @@ describe("NostrProfile follow button", () => {
         nip05: "alice@example.com",
       }),
     );
+    expect(toggleFollow.mock.results.at(-1).value).toBe(true);
     expect(
       await screen.findByRole("button", { name: "Following" }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -96,7 +98,7 @@ describe("NostrProfile follow button", () => {
     const button = await screen.findByRole("button", { name: "Following" });
     expect(button).toHaveAttribute("aria-pressed", "true");
 
-    fireEvent.click(button);
+    await userEvent.click(button);
 
     expect(followsModule.toggleFollow).toHaveBeenCalledWith(
       expect.objectContaining({ pubkey: VALID_PUBKEY }),

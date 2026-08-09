@@ -4,6 +4,7 @@ import { connectNDK, getNDK } from "./ndk";
 import NostrFeed from "./NostrFeed";
 import NostrEventViewer from "./NostrEventViewer";
 import NostrFavourites from "./NostrFavourites";
+import NostrFollowing from "./NostrFollowing";
 import NostrProfile from "./NostrProfile";
 import "./App.css";
 
@@ -70,6 +71,14 @@ function AppLayout() {
           >
             ⭐ Favourites
           </NavLink>
+          <NavLink
+            to="/following"
+            className={({ isActive }) =>
+              `app__nav-btn ${isActive ? "app__nav-btn--active" : ""}`
+            }
+          >
+            👥 Following
+          </NavLink>
         </nav>
       </header>
 
@@ -101,6 +110,7 @@ function AppLayout() {
           <Route path="/profile/:pubkey" element={<NostrProfile ndk={ndk} />} />
 
           <Route path="/favourites" element={<NostrFavourites ndk={ndk} />} />
+          <Route path="/following" element={<NostrFollowing />} />
         </Routes>
       </main>
     </div>
