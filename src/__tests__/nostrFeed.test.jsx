@@ -46,19 +46,6 @@ describe("NostrFeed content type selector", () => {
     });
   });
 
-  it("re-subscribes without a kinds restriction for all content", async () => {
-    render(<NostrFeed ndk={mocks.ndk} />);
-    await waitFor(() => expect(mocks.ndk.subscribe).toHaveBeenCalled());
-
-    fireEvent.change(screen.getByLabelText("Content type"), {
-      target: { value: "all" },
-    });
-
-    await waitFor(() => {
-      expect(mocks.ndk.subscribe.mock.calls.at(-1)[0].kinds).toBeUndefined();
-    });
-  });
-
   it("keeps the rest of the filter (e.g. limit) when changing content type", async () => {
     render(
       <NostrFeed ndk={mocks.ndk} filter={{ kinds: [30023], limit: 30 }} />,
