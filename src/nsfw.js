@@ -71,7 +71,6 @@ export async function checkImageUrl(url) {
   try {
     const probe = await loadImage(url);
     result.cf = await classifyImage(probe);
-    console.log("classified:", result.cf);
     result.nsfw = isNsfw(result.cf);
   } catch (error) {
     console.warn(`NSFW check failed for ${url}:`, error);
