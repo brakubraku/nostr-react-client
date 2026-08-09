@@ -4,4 +4,4 @@ Token costs so far: 0.63$
 
 # Run with
 
-npx vite --host 0.0.0.0 --port 5173"
+npx vite --host 0.0.0.0 --port 5173
