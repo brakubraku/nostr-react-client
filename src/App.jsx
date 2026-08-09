@@ -35,7 +35,7 @@ function AppLayout() {
   return (
     <div className="app">
       <header className="app__header">
-        <h1>Nostr Events</h1>
+        {/* <h1>Nostr Events</h1> */}
         <nav className="app__nav">
           <NavLink
             to="/"

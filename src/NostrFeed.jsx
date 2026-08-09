@@ -111,7 +111,7 @@ export default function NostrFeed({
   return (
     <div className="nostr-feed">
       <div className="nostr-feed__header">
-        <h2 className="nostr-feed__title">Nostr Feed</h2>
+        <h2 className="nostr-feed__title">Unfiltered global feed</h2>
         <div className="nostr-feed__controls">
           <select
             className="nostr-feed__content-type"
