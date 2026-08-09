@@ -25,7 +25,7 @@ describe("NostrFeed content type selector", () => {
     expect(select).toHaveValue("longform");
     expect(
       screen.getAllByRole("option").map((option) => option.textContent),
-    ).toEqual(["Long-form content", "Text notes", "All content"]);
+    ).toEqual(["Long-form content", "Text notes"]);
   });
 
   it("subscribes to long-form content (kind 30023) by default", async () => {
