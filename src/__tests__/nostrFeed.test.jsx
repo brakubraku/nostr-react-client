@@ -6,7 +6,6 @@ import NostrFeed from "../NostrFeed";
 const mocks = vi.hoisted(() => {
   const subscribe = vi.fn(() => ({ stop: vi.fn() }));
   return {
-    subscribe,
     ndk: {
       connect: vi.fn().mockResolvedValue(undefined),
       subscribe,
@@ -30,33 +29,33 @@ describe("NostrFeed content type selector", () => {
 
   it("subscribes to long-form content (kind 30023) by default", async () => {
     render(<NostrFeed ndk={mocks.ndk} />);
-    await waitFor(() => expect(mocks.subscribe).toHaveBeenCalled());
-    expect(mocks.subscribe.mock.calls.at(-1)[0].kinds).toEqual([30023]);
+    await waitFor(() => expect(mocks.ndk.subscribe).toHaveBeenCalled());
+    expect(mocks.ndk.subscribe.mock.calls.at(-1)[0].kinds).toEqual([30023]);
   });
 
   it("re-subscribes with text notes (kind 1) when selected", async () => {
     render(<NostrFeed ndk={mocks.ndk} />);
-    await waitFor(() => expect(mocks.subscribe).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.ndk.subscribe).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText("Content type"), {
       target: { value: "notes" },
     });
 
     await waitFor(() => {
-      expect(mocks.subscribe.mock.calls.at(-1)[0].kinds).toEqual([1]);
+      expect(mocks.ndk.subscribe.mock.calls.at(-1)[0].kinds).toEqual([1]);
     });
   });
 
   it("re-subscribes without a kinds restriction for all content", async () => {
     render(<NostrFeed ndk={mocks.ndk} />);
-    await waitFor(() => expect(mocks.subscribe).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.ndk.subscribe).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText("Content type"), {
       target: { value: "all" },
     });
 
     await waitFor(() => {
-      expect(mocks.subscribe.mock.calls.at(-1)[0].kinds).toBeUndefined();
+      expect(mocks.ndk.subscribe.mock.calls.at(-1)[0].kinds).toBeUndefined();
     });
   });
 
@@ -64,14 +63,14 @@ describe("NostrFeed content type selector", () => {
     render(
       <NostrFeed ndk={mocks.ndk} filter={{ kinds: [30023], limit: 30 }} />,
     );
-    await waitFor(() => expect(mocks.subscribe).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.ndk.subscribe).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText("Content type"), {
       target: { value: "notes" },
     });
 
     await waitFor(() => {
-      expect(mocks.subscribe.mock.calls.at(-1)[0]).toEqual({
+      expect(mocks.ndk.subscribe.mock.calls.at(-1)[0]).toEqual({
         kinds: [1],
         limit: 30,
       });
