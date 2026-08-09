@@ -108,3 +108,20 @@ describe("NostrProfile follow button", () => {
     ).toHaveAttribute("aria-pressed", "false");
   });
 });
+
+describe("NostrProfile profile lookup", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("calls fetchProfile on the user returned by ndk when a pubkey is in the URL", async () => {
+    renderProfile();
+
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
+
+    expect(mockNdk.getUser).toHaveBeenCalledWith({ pubkey: VALID_PUBKEY });
+    const user = mockNdk.getUser.mock.results.at(-1).value;
+    expect(user.fetchProfile).toHaveBeenCalled();
+  });
+});
+
