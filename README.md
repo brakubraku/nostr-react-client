@@ -1,8 +1,7 @@
 # Clanker driven development
 
-Token costs so far: 0.51$
+Token costs so far: 0.63$
 
 # Run with
 
 npx vite --host 0.0.0.0 --port 5173"
-
