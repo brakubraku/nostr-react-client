@@ -126,7 +126,7 @@ export default function NostrProfile({ ndk }) {
     try {
       const fetchedEvents = await ndk.fetchEvents({
         authors: [pubkeyHex],
-        kinds: [1],
+        kinds: [1, 30023],
         limit: 50,
       });
 
