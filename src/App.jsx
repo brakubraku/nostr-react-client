@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import { connectNDK, getNDK } from "./ndk";
 import NostrFeed from "./NostrFeed";
@@ -32,6 +32,23 @@ function AppLayout() {
       cancelled = true;
     };
   }, []);
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="app">
@@ -113,6 +130,18 @@ function AppLayout() {
           <Route path="/following" element={<NostrFollowing />} />
         </Routes>
       </main>
+
+      {showScrollTop && (
+        <button
+          type="button"
+          className="app__scroll-top"
+          aria-label="Scroll to top"
+          title="Scroll to top"
+          onClick={scrollToTop}
+        >
+          ↑
+        </button>
+      )}
     </div>
   );
 }

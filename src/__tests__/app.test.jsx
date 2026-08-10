@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AppLayout } from "../App";
 
@@ -83,5 +83,28 @@ describe("App", () => {
       expect(feed).toBeInTheDocument();
       expect(screen.getByText(/relay\.primal\.net/)).toBeInTheDocument();
     });
+  });
+
+  it("shows the scroll-to-top button after scrolling down and scrolls to the top on click", () => {
+    renderWithRouter("/favourites");
+    expect(
+      screen.queryByRole("button", { name: "Scroll to top" }),
+    ).not.toBeInTheDocument();
+
+    Object.defineProperty(window, "scrollY", {
+      value: 500,
+      writable: true,
+      configurable: true,
+    });
+    fireEvent.scroll(window);
+
+    const button = screen.getByRole("button", { name: "Scroll to top" });
+    fireEvent.click(button);
+    expect(window.scrollTo).toHaveBeenCalledWith({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    delete window.scrollY;
   });
 });
