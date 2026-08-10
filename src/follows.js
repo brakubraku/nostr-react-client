@@ -1,4 +1,5 @@
 const STORAGE_KEY = "nostr-follows";
+const HEX_PUBKEY_RE = /^[0-9a-f]{64}$/i;
 
 let follows = [];
 
@@ -142,4 +143,78 @@ export function clearFollows() {
   if (follows.length === 0) return;
   follows = [];
   saveFollows();
+}
+
+/**
+ * Serialize followed accounts as plain text, one hex pubkey per line.
+ * @param {Array<{pubkey: string}>} followsList
+ * @returns {string} file contents (ends with a newline when non-empty)
+ */
+export function followsToText(followsList) {
+  if (followsList.length === 0) return "";
+  return followsList.map((account) => account.pubkey).join("\n") + "\n";
+}
+
+/**
+ * Parse a follows text file into candidate lines, trimming whitespace and
+ * skipping empty lines and comment lines (starting with "#").
+ * @param {string} text
+ * @returns {string[]} trimmed lines
+ */
+export function parseFollowsText(text) {
+  const lines = [];
+  for (const rawLine of String(text ?? "").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    lines.push(line);
+  }
+  return lines;
+}
+
+/**
+ * Resolve a single line to a hex pubkey, accepting either a hex pubkey or an
+ * npub address. Returns null for anything unrecognized.
+ * @param {string} line
+ * @returns {Promise<string|null>}
+ */
+async function resolvePubkeyText(line) {
+  if (HEX_PUBKEY_RE.test(line)) return line.toLowerCase();
+  if (line.startsWith("npub1")) {
+    try {
+      const { nip19 } = await import("@nostr-dev-kit/ndk");
+      const decoded = nip19.decode(line);
+      if (decoded.type === "npub") return decoded.data;
+    } catch {
+      // Not a valid npub address; fall through to invalid.
+    }
+  }
+  return null;
+}
+
+/**
+ * Import accounts from a follows text file. Hex pubkeys and npub addresses
+ * are recognized; blank and comment lines are ignored. Duplicates are left
+ * untouched.
+ * @param {string} text file contents
+ * @returns {Promise<{imported: number, duplicates: number, invalid: number}>}
+ */
+export async function importFollowsText(text) {
+  let imported = 0;
+  let duplicates = 0;
+  let invalid = 0;
+
+  for (const line of parseFollowsText(text)) {
+    const pubkey = await resolvePubkeyText(line);
+    if (!pubkey) {
+      invalid += 1;
+      continue;
+    }
+    if (addFollow({ pubkey })) {
+      imported += 1;
+    } else {
+      duplicates += 1;
+    }
+  }
+
+  return { imported, duplicates, invalid };
 }

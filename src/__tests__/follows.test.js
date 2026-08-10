@@ -205,4 +205,82 @@ describe("follows module", () => {
       expect(callback).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("followsToText", () => {
+    it("should write one pubkey per line", () => {
+      const pk1 = "a".repeat(64);
+      const pk2 = "b".repeat(64);
+      const text = followsModule.followsToText([
+        { pubkey: pk1, displayName: "Alice" },
+        { pubkey: pk2 },
+      ]);
+      expect(text).toBe(`${pk1}\n${pk2}\n`);
+    });
+
+    it("should return an empty string when nothing is followed", () => {
+      expect(followsModule.followsToText([])).toBe("");
+    });
+  });
+
+  describe("parseFollowsText", () => {
+    it("should skip blank lines and comment lines", () => {
+      const pk1 = "a".repeat(64);
+      const pk2 = "b".repeat(64);
+      const lines = followsModule.parseFollowsText(
+        `# Nostr following list\n\n ${pk1} \r\n${pk2}`,
+      );
+      expect(lines).toEqual([pk1, pk2]);
+    });
+  });
+
+  describe("importFollowsText", () => {
+    it("should import hex pubkeys", async () => {
+      const pk1 = "a".repeat(64);
+      const pk2 = "b".repeat(64);
+      const result = await followsModule.importFollowsText(`${pk1}\n${pk2}\n`);
+
+      expect(result).toEqual({ imported: 2, duplicates: 0, invalid: 0 });
+      const follows = followsModule.getFollows();
+      expect(follows.map((account) => account.pubkey)).toEqual([pk2, pk1]);
+    });
+
+    it("should count accounts that are already followed as duplicates", async () => {
+      const pk1 = "a".repeat(64);
+      const pk2 = "b".repeat(64);
+      followsModule.addFollow({ pubkey: pk1 });
+
+      const result = await followsModule.importFollowsText(`${pk1}\n${pk2}\n`);
+
+      expect(result).toEqual({ imported: 1, duplicates: 1, invalid: 0 });
+    });
+
+    it("should count unrecognized lines as invalid", async () => {
+      const pk1 = "a".repeat(64);
+      const result = await followsModule.importFollowsText(
+        `${pk1}\nnot-a-pubkey\n`,
+      );
+
+      expect(result).toEqual({ imported: 1, duplicates: 0, invalid: 1 });
+    });
+
+    it("should import npub addresses", async () => {
+      const pk1 = "a".repeat(64);
+      const { nip19 } = await import("@nostr-dev-kit/ndk");
+      const npub = nip19.npubEncode(pk1);
+
+      const result = await followsModule.importFollowsText(`${npub}\n`);
+
+      expect(result).toEqual({ imported: 1, duplicates: 0, invalid: 0 });
+      expect(followsModule.getFollows()[0].pubkey).toBe(pk1);
+    });
+
+    it("should ignore blank and comment lines", async () => {
+      const pk1 = "a".repeat(64);
+      const result = await followsModule.importFollowsText(
+        `# comment\n\n${pk1}\n`,
+      );
+
+      expect(result).toEqual({ imported: 1, duplicates: 0, invalid: 0 });
+    });
+  });
 });
