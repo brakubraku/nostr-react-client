@@ -58,6 +58,37 @@ describe("NostrEventCard", () => {
     expect(screen.getByText("No event data")).toBeInTheDocument();
   });
 
+  it("should render a pulsing loading skeleton when loading is true", () => {
+    const { container } = renderWithRouter(
+      <NostrEventCard event={basicEvent} loading={true} />,
+    );
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(
+      container.querySelectorAll(".nostr-card__skeleton").length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/Hello from Nostr!/)).not.toBeInTheDocument();
+  });
+
+  it("should render the loading skeleton even without an event", () => {
+    renderWithRouter(<NostrEventCard loading={true} />);
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.queryByText("No event data")).not.toBeInTheDocument();
+  });
+
+  it("should switch between the loading skeleton and content without errors", () => {
+    const { rerender } = renderWithRouter(
+      <NostrEventCard event={basicEvent} loading={true} />,
+    );
+    expect(screen.getByRole("status")).toBeInTheDocument();
+
+    rerender(
+      <BrowserRouter>
+        <NostrEventCard event={basicEvent} ndk={mockNdk} loading={false} />
+      </BrowserRouter>,
+    );
+    expect(screen.getByText(/Hello from Nostr!/)).toBeInTheDocument();
+  });
+
   it("should display the kind badge when showMeta is true", () => {
     renderWithRouter(<NostrEventCard event={basicEvent} showMeta={true} />);
     expect(screen.getByText("Text Note")).toBeInTheDocument();

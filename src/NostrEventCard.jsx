@@ -16,7 +16,6 @@ import {
 } from "./utils";
 import NsfwCheckedImage from "./NsfwCheckedImage";
 
-
 /**
  * NostrEventCard — a React component that displays a single Nostr event.
  *
@@ -25,12 +24,14 @@ import NsfwCheckedImage from "./NsfwCheckedImage";
  *   ndk            - Shared NDK instance (provided by App), used for author metadata
  *   showMeta       - Whether to show pubkey, id, kind metadata (default: true)
  *   confirmUnfav   - Whether to show a confirmation modal before unfavouriting (default: false)
+ *   loading        - When true, renders a pulsing skeleton card instead of content (default: false)
  */
 export default function NostrEventCard({
   event,
   ndk,
   showMeta = true,
   confirmUnfav,
+  loading = false,
 }) {
   const navigate = useNavigate();
   const [authorMeta, setAuthorMeta] = useState(null);
@@ -39,6 +40,23 @@ export default function NostrEventCard({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAllImages, setShowAllImages] = useState(false);
   const [showAllVideos, setShowAllVideos] = useState(false);
+
+  // Image/video handling
+  const [randomImage] = useState(() => {
+    const urls = extractImageUrls(event?.content || "");
+    if (urls.length > 1) {
+      return urls[Math.floor(Math.random() * urls.length)];
+    }
+    return urls[0] || null;
+  });
+
+  const [randomVideo] = useState(() => {
+    const urls = extractVideoUrls(event?.content || "");
+    if (urls.length > 1) {
+      return urls[Math.floor(Math.random() * urls.length)];
+    }
+    return urls[0] || null;
+  });
 
   // Check if this event is already in favourites on mount and when external changes happen
   useEffect(() => {
@@ -124,6 +142,61 @@ export default function NostrEventCard({
     setShowConfirmModal(false);
   }
 
+  if (loading) {
+    return (
+      <div
+        className="nostr-card nostr-card--loading"
+        role="status"
+        aria-label="Loading event"
+      >
+        <div className="nostr-card__header">
+          <div className="nostr-card__author">
+            <div
+              className="nostr-card__skeleton nostr-card__skeleton--avatar"
+              aria-hidden="true"
+            />
+            <div className="nostr-card__author-info">
+              <div
+                className="nostr-card__skeleton nostr-card__skeleton--line nostr-card__skeleton--name"
+                aria-hidden="true"
+              />
+              <div
+                className="nostr-card__skeleton nostr-card__skeleton--line nostr-card__skeleton--time"
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+          <div className="nostr-card__header-right">
+            <div
+              className="nostr-card__skeleton nostr-card__skeleton--badge"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+        <div className="nostr-card__content">
+          <div
+            className="nostr-card__skeleton nostr-card__skeleton--line"
+            aria-hidden="true"
+          />
+          <div
+            className="nostr-card__skeleton nostr-card__skeleton--line"
+            aria-hidden="true"
+          />
+          <div
+            className="nostr-card__skeleton nostr-card__skeleton--line nostr-card__skeleton--line-short"
+            aria-hidden="true"
+          />
+        </div>
+        <div className="nostr-card__footer">
+          <div
+            className="nostr-card__skeleton nostr-card__skeleton--line nostr-card__skeleton--footer"
+            aria-hidden="true"
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (!event) {
     return <div className="nostr-card nostr-card--empty">No event data</div>;
   }
@@ -141,23 +214,9 @@ export default function NostrEventCard({
   const eTags = (tags || []).filter((t) => t[0] === "e");
   const pTags = (tags || []).filter((t) => t[0] === "p");
 
-  // Image handling
+  // Image/video handling
   const imageUrls = extractImageUrls(content);
-  const [randomImage] = useState(() => {
-    if (imageUrls.length > 1) {
-      return imageUrls[Math.floor(Math.random() * imageUrls.length)];
-    }
-    return imageUrls[0] || null;
-  });
-
-  // Video handling
   const videoUrls = extractVideoUrls(content);
-  const [randomVideo] = useState(() => {
-    if (videoUrls.length > 1) {
-      return videoUrls[Math.floor(Math.random() * videoUrls.length)];
-    }
-    return videoUrls[0] || null;
-  });
 
   return (
     <div className="nostr-card" onClick={() => setExpanded(!expanded)}>
