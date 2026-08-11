@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import NostrEventCard from "./NostrEventCard";
+import Thread from "./Thread";
 import { getFollows, isFollowing, toggleFollow } from "./follows";
 
 /**
@@ -363,7 +363,7 @@ export default function NostrProfile({ ndk }) {
           {!eventsLoading && events.length > 0 && (
             <div className="nostr-profile__events-list">
               {sortedEvents().map((event) => (
-                <NostrEventCard key={event.id} event={event} ndk={ndk} />
+                <Thread key={event.id} event={event} ndk={ndk} />
               ))}
             </div>
           )}

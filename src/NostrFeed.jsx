@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import NostrEventCard from "./NostrEventCard";
+import Thread from "./Thread";
 
 /**
  * Default relay URLs to connect to.
@@ -28,7 +28,6 @@ const CONTENT_TYPE_OPTIONS = [
  *   relayUrls - Array of relay WebSocket URLs (default: see DEFAULT_RELAYS)
  *   filter    - NDK subscription filter object (default: { kinds: [1], limit: 20 })
  *   limit     - Max number of events to keep in the feed (default: 50)
- *   showMeta  - Passed through to NostrEventCard
  *   defaultContentType - Content type selected initially (default: "longform")
  *   contentTypeOptions - Options for the content type dropdown
  */
@@ -181,7 +180,7 @@ export default function NostrFeed({
         )}
 
         {events.map((event) => (
-          <NostrEventCard key={event.id} event={event} ndk={ndk} />
+          <Thread key={event.id} event={event} ndk={ndk} />
         ))}
       </div>
 

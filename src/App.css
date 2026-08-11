@@ -1353,3 +1353,45 @@
     animation: none;
   }
 }
+
+.nostr-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--card-bg);
+}
+
+.nostr-thread + .nostr-thread {
+  margin-top: 16px;
+}
+
+.nostr-thread:nth-child(even) {
+  background: var(--code-bg);
+}
+
+.nostr-thread__reply-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-left: 24px;
+  padding-left: 16px;
+  border-left: 2px solid rgba(127, 127, 127, 0.25);
+}
+
+.nostr-thread__reply-group--nested {
+  margin-left: 48px;
+}
+
+.nostr-thread__reply-group--main {
+  border-left-color: var(--accent-border, rgba(170, 59, 255, 0.5));
+}
+
+.nostr-thread__reply-group .nostr-card:last-child {
+  margin-bottom: 0;
+}
+
+.nostr-thread__parent {
+  opacity: 0.75;
+}
