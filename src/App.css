@@ -213,6 +213,13 @@
   max-width: 100%;
 }
 
+.nostr-card__image-wrap--nsfw {
+  /* Tiny or not-yet-loaded images leave almost no room for the NSFW
+     status/error overlay, so reserve a minimum area for the message. */
+  min-width: min(220px, 100%);
+  min-height: 80px;
+}
+
 .nostr-card__image-wrap--nsfw .nostr-card__image {
   filter: blur(18px) saturate(0.6);
 }
@@ -240,6 +247,7 @@
   font-size: 13px;
   text-align: center;
   z-index: 1;
+  overflow: hidden;
 }
 
 .nostr-card__nsfw-label {
@@ -1316,7 +1324,7 @@
   }
 }
 
- (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
   .nostr-card__skeleton {
     animation: none;
   }
