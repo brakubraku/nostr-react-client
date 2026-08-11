@@ -97,7 +97,7 @@ export default function NostrEventViewer({
         )}
 
         {singleEvent && !loading && (
-          <NostrEventCard event={singleEvent} showMeta={true} ndk={ndk} />
+          <NostrEventCard event={singleEvent} ndk={ndk} />
         )}
 
         {!eventId && !loading && (
@@ -111,5 +111,5 @@ export default function NostrEventViewer({
 
   // Default: feed mode
 
-  return <NostrFeed relayUrls={relayUrls} showMeta={true} ndk={ndk} />;
+  return <NostrFeed relayUrls={relayUrls} ndk={ndk} />;
 }

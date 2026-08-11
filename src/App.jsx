@@ -109,7 +109,6 @@ function AppLayout() {
                 relayUrls={FEED_RELAYS}
                 filter={{ kinds: [30023], limit: 30 }}
                 limit={50}
-                showMeta={true}
               />
             }
           />

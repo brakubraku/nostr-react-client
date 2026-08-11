@@ -104,19 +104,41 @@ describe("NostrEventCard", () => {
     expect(screen.getByText(/h ago|m ago/)).toBeInTheDocument();
   });
 
-  it("should expand and show metadata on click", () => {
+  it("should show metadata without expanding and toggle it with the meta button", () => {
     renderWithRouter(<NostrEventCard event={basicEvent} />);
 
-    // Metadata should not be visible initially
-    expect(screen.queryByText("Event ID")).not.toBeInTheDocument();
-
-    // Click to expand
-    fireEvent.click(screen.getByText((content) => content.includes("▼ more")));
-
-    // Wait for expand
+    // Metadata is visible by default - no expansion needed
     expect(screen.getByText("Event ID")).toBeInTheDocument();
     expect(screen.getByText(basicEvent.id)).toBeInTheDocument();
     expect(screen.getByText("Pubkey")).toBeInTheDocument();
+
+    // The meta button hides it without expanding the card
+    fireEvent.click(screen.getByRole("button", { name: /meta/i }));
+    expect(screen.queryByText("Event ID")).not.toBeInTheDocument();
+
+    // And shows it again
+    fireEvent.click(screen.getByRole("button", { name: /meta/i }));
+    expect(screen.getByText("Event ID")).toBeInTheDocument();
+  });
+
+  it("should display all tags in metadata", () => {
+    const eventWithTags = {
+      ...basicEvent,
+      tags: [
+        ["t", "nostr"],
+        ["e", "deadbeef"],
+        ["r", "https://example.com"],
+      ],
+    };
+    renderWithRouter(<NostrEventCard event={eventWithTags} />);
+
+    // Metadata (including all tags) is visible without expanding
+    expect(screen.getByText("Tags")).toBeInTheDocument();
+    expect(screen.getByText('["t","nostr"]')).toBeInTheDocument();
+    expect(screen.getByText('["e","deadbeef"]')).toBeInTheDocument();
+    expect(
+      screen.getByText('["r","https://example.com"]'),
+    ).toBeInTheDocument();
   });
 
   it("should toggle favourite state when fav button is clicked", async () => {
@@ -186,6 +208,26 @@ describe("NostrEventCard", () => {
     // Now the full content should be visible (without the ellipsis)
     expect(
       screen.queryByText((content) => content === longContent),
+    ).toBeInTheDocument();
+  });
+
+  it("should only expand the card via the more button, not by clicking the card", () => {
+    const longContent = "A".repeat(300);
+    const longEvent = { ...basicEvent, content: longContent };
+    const { container } = renderWithRouter(
+      <NostrEventCard event={longEvent} showMeta={false} />,
+    );
+
+    // Clicking the card body must NOT expand the content
+    fireEvent.click(container.querySelector(".nostr-card"));
+    expect(
+      screen.queryByText((content) => content === longContent),
+    ).not.toBeInTheDocument();
+
+    // Clicking "more" expands it
+    fireEvent.click(screen.getByRole("button", { name: /more/i }));
+    expect(
+      screen.getByText((content) => content === longContent),
     ).toBeInTheDocument();
   });
 

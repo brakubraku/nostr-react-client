@@ -66,7 +66,6 @@ export default function NostrFavourites({ ndk }) {
             <NostrEventCard
               key={event.id}
               event={event}
-              showMeta={true}
               confirmUnfav={true}
               ndk={ndk}
             />

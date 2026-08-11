@@ -37,7 +37,6 @@ export default function NostrFeed({
   relayUrls = DEFAULT_RELAYS,
   filter = { kinds: [1], limit: 20 },
   limit = 50,
-  showMeta = true,
   defaultContentType = "longform",
   contentTypeOptions = CONTENT_TYPE_OPTIONS,
 }) {
@@ -182,12 +181,7 @@ export default function NostrFeed({
         )}
 
         {events.map((event) => (
-          <NostrEventCard
-            key={event.id}
-            event={event}
-            showMeta={showMeta}
-            ndk={ndk}
-          />
+          <NostrEventCard key={event.id} event={event} ndk={ndk} />
         ))}
       </div>
 

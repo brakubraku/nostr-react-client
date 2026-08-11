@@ -74,7 +74,6 @@
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
-  cursor: pointer;
   transition:
     box-shadow 0.2s,
     border-color 0.2s;
@@ -392,10 +391,35 @@
   gap: 4px;
 }
 
-.nostr-card__click-hint {
+.nostr-card__meta-btn {
   margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
   font-size: 11px;
   font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.nostr-card__meta-btn:hover {
+  color: var(--accent);
+}
+
+.nostr-card__click-hint {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.nostr-card__click-hint:hover {
+  color: var(--accent);
 }
 
 /* --- Nostr Feed --- */

@@ -22,20 +22,22 @@ import NsfwCheckedImage from "./NsfwCheckedImage";
  * Props:
  *   event          - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
  *   ndk            - Shared NDK instance (provided by App), used for author metadata
- *   showMeta       - Whether to show pubkey, id, kind metadata (default: true)
+ *   showMeta       - Initial visibility of pubkey, id, kind metadata (default: true)
  *   confirmUnfav   - Whether to show a confirmation modal before unfavouriting (default: false)
  *   loading        - When true, renders a pulsing skeleton card instead of content (default: false)
  */
 export default function NostrEventCard({
   event,
   ndk,
-  showMeta = true,
   confirmUnfav,
   loading = false,
 }) {
   const navigate = useNavigate();
   const [authorMeta, setAuthorMeta] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  // Local state so the "meta" button can show/hide event metadata
+  // without having to expand the card first.
+  const [showMeta, setShowMeta] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAllImages, setShowAllImages] = useState(false);
@@ -386,8 +388,8 @@ export default function NostrEventCard({
         </div>
       )}
 
-      {/* Event metadata (collapsible) */}
-      {showMeta && expanded && (
+      {/* Event metadata (toggleable via the meta button) */}
+      {showMeta && (
         <div className="nostr-card__meta">
           <div className="nostr-card__meta-row">
             <span className="nostr-card__meta-label">Event ID</span>
@@ -413,14 +415,28 @@ export default function NostrEventCard({
               </code>
             </div>
           )}
+          <div className="nostr-card__meta-row">
+            <span className="nostr-card__meta-label">Kind</span>
+            <code className="nostr-card__meta-value">{kind}</code>
+          </div>
+          {tags?.length > 0 && (
+            <div className="nostr-card__meta-row">
+              <span className="nostr-card__meta-label">Tags</span>
+              <code className="nostr-card__meta-value">
+                {tags.map((t, i) => (
+                  <span key={i}>
+                    {i > 0 && <br />}
+                    {JSON.stringify(t)}
+                  </span>
+                ))}
+              </code>
+            </div>
+          )}
         </div>
       )}
 
       {/* Footer */}
       <div className="nostr-card__footer">
-        {showMeta && (
-          <span className="nostr-card__footer-item">Kind: {kind ?? "?"}</span>
-        )}
         {eTags.length > 0 && (
           <span className="nostr-card__footer-item">
             {eTags.length} repl{eTags.length !== 1 ? "ies" : "y"}
@@ -431,9 +447,30 @@ export default function NostrEventCard({
             {pTags.length} mention{pTags.length !== 1 ? "s" : ""}
           </span>
         )}
-        <span className="nostr-card__footer-item nostr-card__click-hint">
+        <button
+          type="button"
+          className="nostr-card__footer-item nostr-card__meta-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowMeta((v) => !v);
+          }}
+          aria-expanded={showMeta}
+          title={showMeta ? "Hide metadata" : "Show metadata"}
+        >
+          {showMeta ? "▲ meta" : "▼ meta"}
+        </button>
+        <button
+          type="button"
+          className="nostr-card__footer-item nostr-card__click-hint"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((v) => !v);
+          }}
+          aria-expanded={expanded}
+          title={expanded ? "Show less" : "Show more"}
+        >
           {expanded ? "▲ less" : "▼ more"}
-        </span>
+        </button>
       </div>
 
       {showConfirmModal && (

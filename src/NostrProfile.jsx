@@ -363,12 +363,7 @@ export default function NostrProfile({ ndk }) {
           {!eventsLoading && events.length > 0 && (
             <div className="nostr-profile__events-list">
               {sortedEvents().map((event) => (
-                <NostrEventCard
-                  key={event.id}
-                  event={event}
-                  showMeta={true}
-                  ndk={ndk}
-                />
+                <NostrEventCard key={event.id} event={event} ndk={ndk} />
               ))}
             </div>
           )}
