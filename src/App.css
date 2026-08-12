@@ -1388,6 +1388,68 @@
   border-left-color: var(--accent-border, rgba(170, 59, 255, 0.5));
 }
 
+.nostr-thread__event {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.nostr-thread__event .nostr-card {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.nostr-thread__side-panel {
+  flex-shrink: 0;
+  width: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg, var(--bg));
+  text-align: center;
+}
+
+.nostr-thread__reply-count {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-h);
+}
+
+.nostr-thread__reply-label {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.nostr-thread__expand-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-border);
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.nostr-thread__expand-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 .nostr-thread__reply-group .nostr-card:last-child {
   margin-bottom: 0;
 }

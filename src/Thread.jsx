@@ -3,6 +3,30 @@ import { NDKEvent, eventIsReply } from "@nostr-dev-kit/ndk";
 import NostrEventCard from "./NostrEventCard";
 
 /**
+ * ReplySidePanel — presentational side panel with a reply count and an
+ * expand button. No behavior is wired up yet.
+ */
+function ReplySidePanel({ count }) {
+  return (
+    <aside className="nostr-thread__side-panel" aria-label="Replies">
+      <span className="nostr-thread__reply-count">
+        {count}
+        <span className="nostr-thread__reply-label">
+          {count !== 1 ? "replies" : "reply"}
+        </span>
+      </span>
+      <button
+        type="button"
+        className="nostr-thread__expand-btn"
+        title="Expand replies"
+      >
+        ▼ Expand
+      </button>
+    </aside>
+  );
+}
+
+/**
  * Thread — displays a Nostr event together with its context:
  *
  *   parent event (if it exists)          ─ shown above the main event
@@ -13,7 +37,12 @@ import NostrEventCard from "./NostrEventCard";
  *   event - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
  *   ndk   - Shared NDK instance, used to fetch the parent and subscribe to replies
  */
-export default function Thread({ event, ndk }) {
+export default function Thread({
+  event,
+  ndk,
+  showReplies = true,
+  showParent = true,
+}) {
   const [parentEvent, setParentEvent] = useState(null);
   const [replies, setReplies] = useState([]);
 
@@ -22,7 +51,7 @@ export default function Thread({ event, ndk }) {
     let cancelled = false;
     setParentEvent(null);
 
-    if (!ndk || !event?.id) return;
+    if (!ndk || !event?.id || !showParent) return;
 
     const op = event instanceof NDKEvent ? event : new NDKEvent(ndk, event);
     op.fetchReplyEvent()
@@ -41,7 +70,7 @@ export default function Thread({ event, ndk }) {
   // Subscribe to replies to this event (events that tag it as a reply target).
   useEffect(() => {
     setReplies([]);
-    if (!ndk || !event?.id) return;
+    if (!ndk || !event?.id || !showReplies) return;
 
     const op = event instanceof NDKEvent ? event : new NDKEvent(ndk, event);
     const replySub = ndk.subscribe(
@@ -63,7 +92,7 @@ export default function Thread({ event, ndk }) {
     );
 
     return () => replySub?.stop?.();
-  }, [ndk, event]);
+  }, [ndk, event, showReplies]);
 
   if (!event) {
     return <div className="nostr-card nostr-card--empty">No event data</div>;
@@ -73,7 +102,10 @@ export default function Thread({ event, ndk }) {
     <div className="nostr-thread">
       {parentEvent && (
         <div className="nostr-thread__parent">
-          <NostrEventCard event={parentEvent} ndk={ndk} />
+          <div className="nostr-thread__event">
+            <NostrEventCard event={parentEvent} ndk={ndk} />
+            <ReplySidePanel count={0} />
+          </div>
         </div>
       )}
 
@@ -84,7 +116,10 @@ export default function Thread({ event, ndk }) {
             : undefined
         }
       >
-        <NostrEventCard event={event} ndk={ndk} />
+        <div className="nostr-thread__event">
+          <NostrEventCard event={event} ndk={ndk} />
+          <ReplySidePanel count={replies.length} />
+        </div>
       </div>
 
       {replies.length > 0 && (
@@ -96,7 +131,10 @@ export default function Thread({ event, ndk }) {
           }
         >
           {replies.map((reply) => (
-            <NostrEventCard key={reply.id} event={reply} ndk={ndk} />
+            <div className="nostr-thread__event" key={reply.id}>
+              <NostrEventCard event={reply} ndk={ndk} />
+              <ReplySidePanel count={0} />
+            </div>
           ))}
         </div>
       )}
