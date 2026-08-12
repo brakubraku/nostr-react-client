@@ -32,5 +32,5 @@
       }
     }
   },
-  "postStartCommand": "echo '✅ Container ready — run `npm run dev` to start the dev server'"
+  "postStartCommand": "npx vite --host 0.0.0.0 --port 5173"
 }
