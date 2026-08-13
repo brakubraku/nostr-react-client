@@ -437,16 +437,6 @@ export default function NostrEventCard({
 
       {/* Footer */}
       <div className="nostr-card__footer">
-        {eTags.length > 0 && (
-          <span className="nostr-card__footer-item">
-            {eTags.length} repl{eTags.length !== 1 ? "ies" : "y"}
-          </span>
-        )}
-        {pTags.length > 0 && (
-          <span className="nostr-card__footer-item">
-            {pTags.length} mention{pTags.length !== 1 ? "s" : ""}
-          </span>
-        )}
         <button
           type="button"
           className="nostr-card__footer-item nostr-card__meta-btn"
