@@ -1400,6 +1400,12 @@
   gap: 12px;
 }
 
+.nostr-thread__event-with-replies {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .nostr-thread__event .nostr-card {
   flex: 1;
   min-width: 0;

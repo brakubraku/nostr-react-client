@@ -107,22 +107,24 @@ describe("Thread", () => {
 
   it("should render replies as NostrEventCards stacked under the main event", async () => {
     subscribeMock.mockImplementation((filter, opts) => {
-      opts.onEvent({
-        id: "replyEventId1",
-        kind: 1,
-        pubkey: "replypubkey1234567890123456789012345678901234567890",
-        content: "Reply one",
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [["e", mainEvent.id, "", "reply"]],
-      });
-      opts.onEvent({
-        id: "replyEventId2",
-        kind: 1,
-        pubkey: "replypubkey2234567890123456789012345678901234567890",
-        content: "Reply two",
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [["e", mainEvent.id, "", "reply"]],
-      });
+      if (filter["#e"]?.[0] === mainEvent.id) {
+        opts.onEvent({
+          id: "replyEventId1",
+          kind: 1,
+          pubkey: "replypubkey1234567890123456789012345678901234567890",
+          content: "Reply one",
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["e", mainEvent.id, "", "reply"]],
+        });
+        opts.onEvent({
+          id: "replyEventId2",
+          kind: 1,
+          pubkey: "replypubkey2234567890123456789012345678901234567890",
+          content: "Reply two",
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["e", mainEvent.id, "", "reply"]],
+        });
+      }
       return { stop: vi.fn() };
     });
 

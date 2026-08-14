@@ -10,14 +10,12 @@ import { NDKEvent, eventIsReply } from "@nostr-dev-kit/ndk";
  * Props:
  *   event           - The event whose replies should be loaded.
  *   ndk             - Shared NDK instance used to subscribe to replies.
- *   showReplies     - When false, replies are not loaded (default: true).
  *   onRepliesChange - Optional callback receiving the loaded replies list,
  *                     so a parent can render them (e.g. Thread's reply group).
  */
 export default function ReplySidePanel({
   event,
   ndk,
-  showReplies = true,
   onRepliesChange,
   onExpand,
 }) {
@@ -26,7 +24,7 @@ export default function ReplySidePanel({
   // Subscribe to replies to this event (events that tag it as a reply target).
   useEffect(() => {
     setReplies([]);
-    if (!ndk || !event?.id || !showReplies) return;
+    if (!ndk || !event?.id) return;
 
     const op = event instanceof NDKEvent ? event : new NDKEvent(ndk, event);
     const replySub = ndk.subscribe(
@@ -48,7 +46,7 @@ export default function ReplySidePanel({
     );
 
     return () => replySub?.stop?.();
-  }, [ndk, event, showReplies]);
+  }, [ndk, event]);
 
   // Report the loaded replies upward so a parent can render them.
   useEffect(() => {

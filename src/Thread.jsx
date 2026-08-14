@@ -3,6 +3,32 @@ import { NDKEvent } from "@nostr-dev-kit/ndk";
 import NostrEventCard from "./NostrEventCard";
 import ReplySidePanel from "./ReplySidePanel";
 
+function EventWithReplies({ event, ndk, showReplies = false }) {
+  const [replies, setReplies] = useState([]);
+  const [isShowReplies, setIsShowReplies] = useState(showReplies);
+
+  return (
+    <div className="nostr-thread__event-with-replies">
+      <div className="nostr-thread__event">
+        <NostrEventCard event={event} ndk={ndk} />
+        <ReplySidePanel
+          event={event}
+          ndk={ndk}
+          onRepliesChange={setReplies}
+          onExpand={() => setIsShowReplies(!isShowReplies)}
+        />
+      </div>
+      {isShowReplies && replies.length > 0 && (
+        <div className="nostr-thread__reply-group">
+          {replies.map((reply) => (
+            <EventWithReplies key={reply.id} event={reply} ndk={ndk} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * Thread — displays a Nostr event together with its context:
  *
@@ -14,16 +40,9 @@ import ReplySidePanel from "./ReplySidePanel";
  *   event - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
  *   ndk   - Shared NDK instance, used to fetch the parent and load replies
  */
-export default function Thread({
-  event,
-  ndk,
-  showReplies = true,
-  showParent = true,
-}) {
+export default function Thread({ event, ndk, showParent = true }) {
   const [parentEvent, setParentEvent] = useState(null);
-  const [replies, setReplies] = useState([]);
   const [isExpandParent, setExpandParent] = useState(false);
-  const [replyToExpand, setReplyToExpand] = useState(null);
 
   // Fetch the parent event this event replies to, if any.
   useEffect(() => {
@@ -44,7 +63,7 @@ export default function Thread({
     return () => {
       cancelled = true;
     };
-  }, [ndk, event]);
+  }, [ndk, event, showParent]);
 
   if (!event) {
     return <div className="nostr-card nostr-card--empty">No event data</div>;
@@ -72,46 +91,13 @@ export default function Thread({
             : undefined
         }
       >
-        <div className="nostr-thread__event">
-          <NostrEventCard event={event} ndk={ndk} />
-          <ReplySidePanel
-            event={event}
-            ndk={ndk}
-            showReplies={showReplies}
-            onRepliesChange={setReplies}
-          />
-        </div>
+        <EventWithReplies event={event} ndk={ndk} />
       </div>
-
-      {replies.length > 0 && (
-        <div
-          className={
-            parentEvent
-              ? "nostr-thread__reply-group nostr-thread__reply-group--nested"
-              : "nostr-thread__reply-group"
-          }
-        >
-          {replies.map((reply) => (
-            <div className="nostr-thread__event" key={reply.id}>
-              <NostrEventCard event={reply} ndk={ndk} />
-              <ReplySidePanel
-                event={reply}
-                ndk={ndk}
-                onExpand={() => setReplyToExpand(reply)}
-              />
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 
   if (isExpandParent) {
     return <Thread event={parentEvent} ndk={ndk} />;
-  }
-
-  if (replyToExpand) {
-    return <Thread event={replyToExpand} ndk={ndk} />;
   }
 
   return <div className="nostr-thread__scroll">{threadBody}</div>;
