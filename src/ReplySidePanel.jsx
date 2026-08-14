@@ -19,6 +19,7 @@ export default function ReplySidePanel({
   ndk,
   showReplies = true,
   onRepliesChange,
+  onExpand,
 }) {
   const [replies, setReplies] = useState([]);
 
@@ -66,6 +67,7 @@ export default function ReplySidePanel({
         type="button"
         className="nostr-thread__expand-btn"
         title="Expand replies"
+        onClick={onExpand}
       >
         ▼ Expand
       </button>

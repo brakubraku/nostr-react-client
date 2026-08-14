@@ -22,6 +22,8 @@ export default function Thread({
 }) {
   const [parentEvent, setParentEvent] = useState(null);
   const [replies, setReplies] = useState([]);
+  const [isExpandParent, setExpandParent] = useState(false);
+  const [replyToExpand, setReplyToExpand] = useState(null);
 
   // Fetch the parent event this event replies to, if any.
   useEffect(() => {
@@ -48,13 +50,17 @@ export default function Thread({
     return <div className="nostr-card nostr-card--empty">No event data</div>;
   }
 
-  return (
+  const threadBody = (
     <div className="nostr-thread">
       {parentEvent && (
         <div className="nostr-thread__parent">
           <div className="nostr-thread__event">
             <NostrEventCard event={parentEvent} ndk={ndk} />
-            <ReplySidePanel event={parentEvent} ndk={ndk} />
+            <ReplySidePanel
+              event={parentEvent}
+              ndk={ndk}
+              onExpand={() => setExpandParent(!isExpandParent)}
+            />
           </div>
         </div>
       )}
@@ -88,11 +94,25 @@ export default function Thread({
           {replies.map((reply) => (
             <div className="nostr-thread__event" key={reply.id}>
               <NostrEventCard event={reply} ndk={ndk} />
-              <ReplySidePanel event={reply} ndk={ndk} />
+              <ReplySidePanel
+                event={reply}
+                ndk={ndk}
+                onExpand={() => setReplyToExpand(reply)}
+              />
             </div>
           ))}
         </div>
       )}
     </div>
   );
+
+  if (isExpandParent) {
+    return <Thread event={parentEvent} ndk={ndk} />;
+  }
+
+  if (replyToExpand) {
+    return <Thread event={replyToExpand} ndk={ndk} />;
+  }
+
+  return threadBody;
 }
