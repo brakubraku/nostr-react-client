@@ -114,5 +114,5 @@ export default function Thread({
     return <Thread event={replyToExpand} ndk={ndk} />;
   }
 
-  return threadBody;
+  return <div className="nostr-thread__scroll">{threadBody}</div>;
 }

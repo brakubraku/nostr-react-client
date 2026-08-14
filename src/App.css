@@ -1363,7 +1363,13 @@
   background: var(--card-bg);
 }
 
-.nostr-thread + .nostr-thread {
+.nostr-thread__scroll {
+  max-height: 70vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-card, 0 2px 8px rgba(0, 0, 0, 0.06));
+}
+
+.nostr-thread__scroll + .nostr-thread__scroll {
   margin-top: 16px;
 }
 
