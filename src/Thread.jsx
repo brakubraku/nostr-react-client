@@ -3,26 +3,52 @@ import { NDKEvent } from "@nostr-dev-kit/ndk";
 import NostrEventCard from "./NostrEventCard";
 import ReplySidePanel from "./ReplySidePanel";
 
-function EventWithReplies({ event, ndk, showReplies = false }) {
+function EventWithReplies({
+  event,
+  ndk,
+  showReplies = false,
+  onShowReplies,
+  continuationReply,
+  flash = false,
+}) {
   const [replies, setReplies] = useState([]);
-  const [isShowReplies, setIsShowReplies] = useState(showReplies);
+  const [repliesVisible, setRepliesVisible] = useState(showReplies);
 
   return (
     <div className="nostr-thread__event-with-replies">
-      <div className="nostr-thread__event">
+      <div
+        className={
+          flash
+            ? "nostr-thread__event nostr-thread__event-with-replies--flash"
+            : "nostr-thread__event"
+        }
+      >
         <NostrEventCard event={event} ndk={ndk} />
         <ReplySidePanel
           event={event}
           ndk={ndk}
           onRepliesChange={setReplies}
-          onExpand={() => setIsShowReplies(!isShowReplies)}
+          onExpand={() => {
+            const nextVisible = !repliesVisible;
+            setRepliesVisible(nextVisible);
+            onShowReplies?.(nextVisible);
+          }}
         />
       </div>
-      {isShowReplies && replies.length > 0 && (
+      {repliesVisible && replies.length > 0 && (
         <div className="nostr-thread__reply-group">
-          {replies.map((reply) => (
-            <EventWithReplies key={reply.id} event={reply} ndk={ndk} />
-          ))}
+          {continuationReply && (
+            <EventWithReplies
+              key={continuationReply.id}
+              event={continuationReply}
+              ndk={ndk}
+              flash
+            />
+          )}
+          {replies.map((reply) => {
+            if (reply.id === continuationReply?.id) return; // already added above
+            return <EventWithReplies key={reply.id} event={reply} ndk={ndk} />;
+          })}
         </div>
       )}
     </div>
@@ -30,29 +56,42 @@ function EventWithReplies({ event, ndk, showReplies = false }) {
 }
 
 /**
- * Thread — displays a Nostr event together with its context:
+ * Thread - displays a Nostr event together with its context:
  *
- *   parent event (if it exists)          ─ shown above the main event
- *   main event                           ─ the event passed as a prop
- *   replies                              ─ stacked below the main event
+ *   parent event (if it exists)     - shown above the main event (collapsed by default)
+ *   main event                      - the event passed as a prop
+ *   replies                         - stacked below the main event
  *
  * Props:
- *   event - An NDKEvent object (or plain object with id, kind, pubkey, content, created_at, tags)
- *   ndk   - Shared NDK instance, used to fetch the parent and load replies
+ *   event             - An NDKEvent object (or plain object with id, kind, pubkey,
+ *                       content, created_at, tags)
+ *   ndk               - Shared NDK instance, used to fetch the parent and load replies
+ *   showParent     - Whether the parent event is shown expanded by default
+ *   showReplies       - Whether the reply group starts visible
+ *   continuationReply - The reply that continues the thread chain; rendered at the top
+ *                       of the reply group so the chain stays readable
  */
-export default function Thread({ event, ndk, showParent = true }) {
+export default function Thread({
+  event,
+  ndk,
+  showParent = false,
+  continuationReply,
+  showReplies,
+}) {
   const [parentEvent, setParentEvent] = useState(null);
-  const [isExpandParent, setExpandParent] = useState(false);
+  const [parentExpanded, setParentExpanded] = useState(showParent);
 
   // Fetch the parent event this event replies to, if any.
   useEffect(() => {
     let cancelled = false;
     setParentEvent(null);
 
-    if (!ndk || !event?.id || !showParent) return;
+    if (!ndk || !event?.id) return;
 
-    const op = event instanceof NDKEvent ? event : new NDKEvent(ndk, event);
-    op.fetchReplyEvent()
+    const ndkEvent =
+      event instanceof NDKEvent ? event : new NDKEvent(ndk, event);
+    ndkEvent
+      .fetchReplyEvent()
       .then((parent) => {
         if (!cancelled && parent) setParentEvent(parent);
       })
@@ -69,35 +108,50 @@ export default function Thread({ event, ndk, showParent = true }) {
     return <div className="nostr-card nostr-card--empty">No event data</div>;
   }
 
-  const threadBody = (
-    <div className="nostr-thread">
-      {parentEvent && (
-        <div className="nostr-thread__parent">
-          <div className="nostr-thread__event">
-            <NostrEventCard event={parentEvent} ndk={ndk} />
-            <ReplySidePanel
-              event={parentEvent}
-              ndk={ndk}
-              onExpand={() => setExpandParent(!isExpandParent)}
-            />
-          </div>
-        </div>
-      )}
-
-      <div
-        className={
-          parentEvent
-            ? "nostr-thread__reply-group nostr-thread__reply-group--main"
-            : undefined
-        }
-      >
-        <EventWithReplies event={event} ndk={ndk} />
-      </div>
-    </div>
+  const eventView = (
+    <EventWithReplies
+      event={event}
+      ndk={ndk}
+      continuationReply={continuationReply}
+      showReplies={showReplies}
+    />
   );
 
-  if (isExpandParent) {
-    return <Thread event={parentEvent} ndk={ndk} />;
+  let threadBody = null;
+
+  if (parentEvent && parentExpanded) {
+    threadBody = (
+      <Thread
+        event={parentEvent}
+        ndk={ndk}
+        continuationReply={{ ...event }}
+        showReplies={true}
+      />
+    );
+  } else {
+    threadBody = (
+      <div className="nostr-thread">
+        {parentEvent && !parentExpanded && (
+          <>
+            <button
+              type="button"
+              className="nostr-thread__parent"
+              onClick={() => setParentExpanded((prev) => !prev)}
+              aria-label="Show parent event"
+              title="Show parent event"
+            >
+              <span className="nostr-thread__parent-dots" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            </button>
+            {eventView}
+          </>
+        )}
+        {!parentEvent && eventView}
+      </div>
+    );
   }
 
   return <div className="nostr-thread__scroll">{threadBody}</div>;

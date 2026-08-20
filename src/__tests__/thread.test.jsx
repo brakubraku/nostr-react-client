@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import Thread from "../Thread";
 
@@ -60,12 +60,29 @@ describe("Thread", () => {
     expect(screen.getByText("Main event content")).toBeInTheDocument();
   });
 
+  it("should mark the main event with a flash highlight", () => {
+    const { container } = renderThread(mainEvent);
+    const mainEventNode = container.querySelector(
+      ".nostr-thread__event-with-replies",
+    );
+    expect(mainEventNode).toHaveClass("nostr-thread__event-with-replies--flash");
+  });
+
   it("should show an empty state when no event is provided", () => {
     renderThread(null);
     expect(screen.getByText("No event data")).toBeInTheDocument();
   });
 
   it("should fetch and render the parent event above the main event", async () => {
+    subscribeMock.mockImplementation((filter, opts) => {
+      if (filter["#e"]?.[0] === "parentEventId456") {
+        opts.onEvent({
+          ...mainEvent,
+          tags: [["e", "parentEventId456", "", "reply"]],
+        });
+      }
+      return { stop: vi.fn() };
+    });
     const eventWithParent = {
       ...mainEvent,
       fetchReplyEvent: vi.fn().mockResolvedValue({
@@ -78,16 +95,55 @@ describe("Thread", () => {
       }),
     };
 
-    const { container } = renderThread(eventWithParent);
+    const { container } = render(
+      <BrowserRouter>
+        <Thread event={eventWithParent} ndk={mockNdk} showParent={true} />
+      </BrowserRouter>,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("Parent event content")).toBeInTheDocument();
     });
 
+    await waitFor(() => {
+      expect(screen.getByText("Main event content")).toBeInTheDocument();
+    });
+
     const cards = container.querySelectorAll(".nostr-card");
-    expect(cards.length).toBe(2);
     expect(cards[0].textContent).toContain("Parent event content");
     expect(cards[1].textContent).toContain("Main event content");
+  });
+
+  it("should show a clickable three-dot indicator when the parent is collapsed and expand it on click", async () => {
+    const eventWithParent = {
+      ...mainEvent,
+      fetchReplyEvent: vi.fn().mockResolvedValue({
+        id: "parentEventId456",
+        kind: 1,
+        pubkey: "parentpubkey1234567890123456789012345678901234567890",
+        content: "Parent event content",
+        created_at: Math.floor(Date.now() / 1000) - 7200,
+        tags: [],
+      }),
+    };
+
+    render(
+      <BrowserRouter>
+        <Thread event={eventWithParent} ndk={mockNdk} showParent={false} />
+      </BrowserRouter>,
+    );
+
+    const expandButton = await screen.findByRole("button", {
+      name: "Show parent event",
+    });
+
+    expect(screen.queryByText("Parent event content")).not.toBeInTheDocument();
+
+    fireEvent.click(expandButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Parent event content")).toBeInTheDocument();
+    });
   });
 
   it("should not render a parent when the event has no reply tag", async () => {
@@ -129,6 +185,8 @@ describe("Thread", () => {
     });
 
     const { container } = renderThread(mainEvent);
+
+    fireEvent.click(screen.getByTitle("Expand replies"));
 
     await waitFor(() => {
       expect(screen.getByText("Reply one")).toBeInTheDocument();

@@ -7,6 +7,7 @@
   --accent: #aa3bff;
   --accent-bg: rgba(170, 59, 255, 0.1);
   --accent-border: rgba(170, 59, 255, 0.5);
+  --flash-accent: #d946ef;
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
   --card-bg: #fff;
 
@@ -34,6 +35,7 @@
     --accent: #c084fc;
     --accent-bg: rgba(192, 132, 252, 0.15);
     --accent-border: rgba(192, 132, 252, 0.5);
+    --flash-accent: #e879f9;
     --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.3);
     --card-bg: #1c1d26;
   }
