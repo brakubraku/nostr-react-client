@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import NostrFollowing from "../NostrFollowing";
 
@@ -20,6 +20,20 @@ vi.mock("../follows", () => ({
   })),
 }));
 
+// Profile data returned by the mock NDK instance, keyed by pubkey.
+const profiles = {
+  pk1: { displayName: "Alice", picture: "https://example.com/alice.png" },
+  pk2: { name: "bob", picture: "https://example.com/bob.png" },
+  pk3: { displayName: "Alice" },
+};
+
+const mockNdk = {
+  getUser: vi.fn(({ pubkey }) => ({
+    fetchProfile: vi.fn().mockResolvedValue(undefined),
+    profile: profiles[pubkey] || {},
+  })),
+};
+
 function LocationProbe() {
   const location = useLocation();
   return <span data-testid="location">{location.pathname}</span>;
@@ -28,7 +42,7 @@ function LocationProbe() {
 function renderFollowing() {
   return render(
     <MemoryRouter>
-      <NostrFollowing />
+      <NostrFollowing ndk={mockNdk} />
       <LocationProbe />
     </MemoryRouter>,
   );
@@ -60,23 +74,19 @@ describe("NostrFollowing", () => {
   it("renders followed accounts as a grid with pictures and names", async () => {
     const { getFollows } = await import("../follows");
     vi.mocked(getFollows).mockReturnValue([
-      {
-        pubkey: "pk1",
-        displayName: "Alice",
-        picture: "https://example.com/alice.png",
-      },
-      {
-        pubkey: "pk2",
-        name: "bob",
-        picture: "https://example.com/bob.png",
-      },
+      { pubkey: "pk1" },
+      { pubkey: "pk2" },
     ]);
 
     const { container } = renderFollowing();
 
-    expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("bob")).toBeInTheDocument();
-    expect(container.querySelectorAll("img.nostr-following__avatar")).toHaveLength(2);
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
+    expect(await screen.findByText("bob")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        container.querySelectorAll("img.nostr-following__avatar"),
+      ).toHaveLength(2);
+    });
 
     const grid = container.querySelector(".nostr-following__grid");
     expect(grid).toBeInTheDocument();
@@ -85,12 +95,11 @@ describe("NostrFollowing", () => {
 
   it("shows an initial placeholder when an account has no picture", async () => {
     const { getFollows } = await import("../follows");
-    vi.mocked(getFollows).mockReturnValue([
-      { pubkey: "pk1", displayName: "Alice" },
-    ]);
+    vi.mocked(getFollows).mockReturnValue([{ pubkey: "pk3" }]);
 
     const { container } = renderFollowing();
 
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("A")).toBeInTheDocument();
     expect(
       container.querySelector(".nostr-following__avatar-placeholder"),
@@ -99,20 +108,18 @@ describe("NostrFollowing", () => {
 
   it("navigates to the account's profile when a tile is clicked", async () => {
     const { getFollows } = await import("../follows");
-    vi.mocked(getFollows).mockReturnValue([
-      { pubkey: "pk1", displayName: "Alice" },
-    ]);
+    vi.mocked(getFollows).mockReturnValue([{ pubkey: "pk1" }]);
 
     renderFollowing();
 
-    fireEvent.click(screen.getByTitle("View Alice's profile"));
+    fireEvent.click(await screen.findByTitle("View Alice's profile"));
     expect(screen.getByTestId("location")).toHaveTextContent("/profile/pk1");
   });
 
   it("exports followed accounts to a txt file", async () => {
     const { getFollows, followsToText } = await import("../follows");
     vi.mocked(getFollows).mockReturnValue([
-      { pubkey: "pk1", displayName: "Alice" },
+      { pubkey: "pk1" },
       { pubkey: "pk2" },
     ]);
     const clickSpy = vi
@@ -123,7 +130,7 @@ describe("NostrFollowing", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export" }));
 
     expect(followsToText).toHaveBeenCalledWith([
-      { pubkey: "pk1", displayName: "Alice" },
+      { pubkey: "pk1" },
       { pubkey: "pk2" },
     ]);
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));

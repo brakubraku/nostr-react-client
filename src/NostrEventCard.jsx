@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { nip19 } from "@nostr-dev-kit/ndk";
 import {
   getFavourites,
   isFavorite,
@@ -13,6 +14,7 @@ import {
   splitContent,
 } from "./utils";
 import NsfwCheckedImage from "./NsfwCheckedImage";
+import AccountCard from "./AccountCard";
 
 /**
  * Shorten content parts so the total text length stays within maxLength,
@@ -71,6 +73,98 @@ function isVideoUrl(url) {
     )
   );
 }
+
+/**
+ * Resolve a "nostr:" reference from note content into the right component:
+ * an AccountCard for profiles (npub/nprofile) or a NostrEventCard for
+ * events (note/nevent/naddr). Falls back to the raw reference text when it
+ * can't be decoded or the event can't be fetched.
+ */
+function NostrRefCard({ refValue, ndk }) {
+  const [event, setEvent] = useState(undefined);
+
+  const decoded = useMemo(() => {
+    try {
+      return nip19.decode(refValue.slice("nostr:".length));
+    } catch {
+      return null;
+    }
+  }, [refValue]);
+
+  useEffect(() => {
+    if (!decoded) {
+      setEvent(undefined);
+      return;
+    }
+    if (decoded.type === "npub" || decoded.type === "nprofile") {
+      setEvent(undefined);
+      return;
+    }
+    if (!ndk) {
+      setEvent(null);
+      return;
+    }
+
+    let cancelled = false;
+    setEvent(undefined);
+
+    async function fetchEvent() {
+      try {
+        let found = null;
+        if (decoded.type === "note") {
+          found = await ndk.fetchEvent({ ids: [decoded.data] });
+        } else if (decoded.type === "nevent") {
+          found = await ndk.fetchEvent({ ids: [decoded.data.id] });
+        } else if (decoded.type === "naddr") {
+          found = await ndk.fetchEvent({
+            kinds: [decoded.data.kind],
+            authors: [decoded.data.pubkey],
+            "#d": [decoded.data.identifier],
+          });
+        }
+        if (!cancelled) {
+          setEvent(found);
+        }
+      } catch {
+        if (!cancelled) {
+          setEvent(null);
+        }
+      }
+    }
+
+    fetchEvent();
+    return () => {
+      cancelled = true;
+    };
+  }, [decoded, ndk, refValue]);
+
+  if (decoded?.type === "npub" || decoded?.type === "nprofile") {
+    const pubkey =
+      decoded.type === "npub" ? decoded.data : decoded.data.pubkey;
+    return (
+      <div
+        className="nostr-card__ref nostr-card__ref--account"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <AccountCard pubkey={pubkey} ndk={ndk} />
+      </div>
+    );
+  }
+
+  if (decoded && event) {
+    return (
+      <div
+        className="nostr-card__ref nostr-card__ref--event"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <NostrEventCard event={event} ndk={ndk} />
+      </div>
+    );
+  }
+
+  return <span className="nostr-card__nostr-ref">{refValue}</span>;
+}
+
 
 
 /**
@@ -366,27 +460,7 @@ export default function NostrEventCard({
 
             if (part.type === "nostr") {
               return (
-                <a
-                  key={i}
-                  className="nostr-card__nostr-ref"
-                  href={`https://njump.me/${part.value.slice("nostr:".length)}`}
-                  title={part.value}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (part.value.startsWith("nostr:npub")) {
-                      navigate(`/profile/${part.value.slice("nostr:".length)}`);
-                    } else {
-                      window.open(
-                        `https://njump.me/${part.value.slice("nostr:".length)}`,
-                        "_blank",
-                        "noopener,noreferrer",
-                      );
-                    }
-                  }}
-                >
-                  {part.value}
-                </a>
+                <NostrRefCard key={i} refValue={part.value} ndk={ndk} />
               );
             }
 

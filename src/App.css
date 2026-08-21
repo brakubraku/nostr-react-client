@@ -327,6 +327,16 @@
   text-decoration-color: var(--accent);
 }
 
+/* --- Inline account/event cards for nostr refs --- */
+.nostr-card__ref {
+  margin: 2px 0;
+}
+
+.nostr-card__ref--account {
+  display: inline-block;
+  vertical-align: top;
+}
+
 /* --- Collapsible metadata --- */
 .nostr-card__meta {
   background: var(--code-bg);

@@ -9,7 +9,7 @@ import AccountCard from "./AccountCard";
  * and name; clicking a tile opens that account's profile page. The header
  * provides Export/Import buttons for moving the list to/from a text file.
  */
-export default function NostrFollowing() {
+export default function NostrFollowing({ ndk }) {
   const [follows, setFollows] = useState([]);
   const [status, setStatus] = useState(null);
   const fileInputRef = useRef(null);
@@ -135,7 +135,7 @@ export default function NostrFollowing() {
       ) : (
         <div className="nostr-following__grid">
           {follows.map((account) => (
-            <AccountCard key={account.pubkey} account={account} />
+            <AccountCard key={account.pubkey} pubkey={account.pubkey} ndk={ndk} />
           ))}
         </div>
       )}
