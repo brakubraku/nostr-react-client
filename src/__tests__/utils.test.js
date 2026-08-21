@@ -3,6 +3,7 @@ import {
   extractImageUrls,
   extractVideoUrls,
   stripMediaUrls,
+  splitContent,
   getKindLabel,
   truncateHex,
 } from "../utils";
@@ -168,6 +169,68 @@ describe("Utility functions", () => {
       const longHex = "abcdef0123456789abcdef0123456789";
       const result = truncateHex(longHex, 4);
       expect(result).toBe("abcd...6789");
+    });
+  });
+
+
+  describe("splitContent", () => {
+    it("should return empty array for empty content", () => {
+      expect(splitContent("")).toEqual([]);
+      expect(splitContent(null)).toEqual([]);
+      expect(splitContent(undefined)).toEqual([]);
+    });
+
+    it("should return a single text part for plain content", () => {
+      expect(splitContent("hello world")).toEqual([
+        { type: "text", value: "hello world" },
+      ]);
+    });
+
+    it("should split text and image URLs into typed parts", () => {
+      const result = splitContent("Look https://example.com/a.png here");
+      expect(result).toEqual([
+        { type: "text", value: "Look " },
+        { type: "media-url", value: "https://example.com/a.png" },
+        { type: "text", value: " here" },
+      ]);
+    });
+
+    it("should split video URLs into media-url parts", () => {
+      const result = splitContent("https://youtu.be/dQw4w9WgXcQ wow");
+      expect(result).toEqual([
+        { type: "media-url", value: "https://youtu.be/dQw4w9WgXcQ" },
+        { type: "text", value: " wow" },
+      ]);
+    });
+
+    it("should split nostr entity references into nostr parts", () => {
+      const npub =
+        "nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+      const result = splitContent(`hi ${npub} bye`);
+      expect(result).toEqual([
+        { type: "text", value: "hi " },
+        { type: "nostr", value: npub },
+        { type: "text", value: " bye" },
+      ]);
+    });
+
+    it("should handle media URLs and nostr refs together", () => {
+      const npub =
+        "nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+      const result = splitContent(`${npub} https://example.com/i.gif text`);
+      expect(result).toEqual([
+        { type: "nostr", value: npub },
+        { type: "text", value: " " },
+        { type: "media-url", value: "https://example.com/i.gif" },
+        { type: "text", value: " text" },
+      ]);
+    });
+
+    it("should keep non-media URLs as text", () => {
+      const result = splitContent("Visit https://example.com for info");
+      expect(result).toEqual([
+        { type: "text", value: "Visit https://example.com for info" },
+      ]);
     });
   });
 });
