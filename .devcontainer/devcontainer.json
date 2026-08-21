@@ -4,7 +4,8 @@
 
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
   "mounts": [
-    "source=${localEnv:HOME}/.codex,target=/home/node/.codex,type=bind"
+    "source=${localEnv:HOME}/.codex,target=/home/node/.codex,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind"
   ],
   "runArgs": ["--security-opt", "label:disable"],
   "workspaceFolder": "/workspace",
