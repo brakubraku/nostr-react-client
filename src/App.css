@@ -167,6 +167,11 @@
 
 .nostr-card__content {
   margin-bottom: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-h);
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .nostr-card__content p {
@@ -301,6 +306,25 @@
   border: 1px solid var(--border);
   cursor: pointer;
   background: #000;
+}
+
+/* --- Inline media (consecutive media URLs flow in a row) --- */
+.nostr-card__content .nostr-card__image-wrap,
+.nostr-card__content .nostr-card__video {
+  display: inline-block;
+  vertical-align: top;
+  margin: 2px;
+}
+
+.nostr-card__nostr-ref {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-border);
+  word-break: break-all;
+}
+
+.nostr-card__nostr-ref:hover {
+  text-decoration-color: var(--accent);
 }
 
 /* --- Collapsible metadata --- */

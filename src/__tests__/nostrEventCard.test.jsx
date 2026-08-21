@@ -358,7 +358,7 @@ describe("NostrEventCard", () => {
     expect(screen.queryByText(/image failed to load/)).not.toBeInTheDocument();
   });
 
-  it("should show 'Show all N images' button when multiple images", () => {
+  it("should render consecutive images in the order they appear", () => {
     const content = `
       https://example.com/img1.png
       https://example.com/img2.jpg
@@ -366,9 +366,126 @@ describe("NostrEventCard", () => {
     `;
     const eventWithImages = { ...basicEvent, content };
 
-    renderWithRouter(<NostrEventCard event={eventWithImages} />);
+    const { container } = renderWithRouter(
+      <NostrEventCard event={eventWithImages} />,
+    );
 
-    expect(screen.getByText("Show all 3 images")).toBeInTheDocument();
+    const images = container
+      .querySelector(".nostr-card__content")
+      .querySelectorAll("img");
+    expect(images).toHaveLength(3);
+    expect(images[0]).toHaveAttribute("src", "https://example.com/img1.png");
+    expect(images[1]).toHaveAttribute("src", "https://example.com/img2.jpg");
+    expect(images[2]).toHaveAttribute("src", "https://example.com/img3.gif");
+    expect(screen.getByAltText("Image 3")).toBeInTheDocument();
+    expect(screen.queryByText(/Show all/i)).not.toBeInTheDocument();
+  });
+
+  it("should render text, nostr refs and media URLs in their original order", () => {
+    const npub =
+      "nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+    const eventWithParts = {
+      ...basicEvent,
+      content: `Start ${npub} middle https://example.com/pic.png end`,
+    };
+
+    const { container } = renderWithRouter(
+      <NostrEventCard event={eventWithParts} />,
+    );
+
+    const content = container.querySelector(".nostr-card__content");
+    const nodes = [...content.children];
+
+    // Parts are rendered one by one, in splitContent order; newlines are
+    // emitted by splitContent as "\n" text parts, so media and nostr refs
+    // start on new lines when they follow a different kind of part.
+    expect(nodes[0].textContent).toContain("Start");
+    expect(nodes[1].textContent).toBe("\n");
+    expect(nodes[2].tagName).toBe("A");
+    expect(nodes[2]).toHaveTextContent(npub);
+    expect(nodes[3].textContent).toBe("\n");
+    expect(nodes[4].textContent).toContain("middle");
+    expect(nodes[5].textContent).toBe("\n");
+    expect(nodes[6].querySelector("img")).toHaveAttribute(
+      "src",
+      "https://example.com/pic.png",
+    );
+    expect(nodes[7].textContent).toBe("\n");
+    expect(nodes[8].textContent).toContain("end");
+  });
+
+  it("should keep consecutive npub refs on the same line", () => {
+    const npub1 =
+      "nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+    const npub2 =
+      "nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr";
+    const eventWithRefs = {
+      ...basicEvent,
+      content: `${npub1}\n${npub2}`,
+    };
+
+    const { container } = renderWithRouter(
+      <NostrEventCard event={eventWithRefs} />,
+    );
+
+    const content = container.querySelector(".nostr-card__content");
+    const nodes = [...content.children];
+
+    // Both npubs stay on the same line (only a separator space between)
+    expect(nodes[0].tagName).toBe("A");
+    expect(nodes[1].textContent).toBe(" ");
+    expect(nodes[2].tagName).toBe("A");
+    expect(nodes[2]).toHaveTextContent(npub2);
+  });
+
+  it("should put consecutive note refs on separate lines", () => {
+    const note1 =
+      "nostr:note1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+    const note2 =
+      "nostr:note1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr";
+    const eventWithRefs = {
+      ...basicEvent,
+      content: `${note1}\n${note2}`,
+    };
+
+    const { container } = renderWithRouter(
+      <NostrEventCard event={eventWithRefs} />,
+    );
+
+    const content = container.querySelector(".nostr-card__content");
+    const nodes = [...content.children];
+
+    // First note, separator space, newline, second note
+    expect(nodes[0].tagName).toBe("A");
+    expect(nodes[1].textContent).toBe(" ");
+    expect(nodes[2].textContent).toBe("\n");
+    expect(nodes[3].tagName).toBe("A");
+    expect(nodes[3]).toHaveTextContent(note2);
+  });
+
+  it("should keep consecutive media URLs on the same line", () => {
+    const eventWithImages = {
+      ...basicEvent,
+      content: "https://example.com/a.png\nhttps://example.com/b.jpg",
+    };
+
+    const { container } = renderWithRouter(
+      <NostrEventCard event={eventWithImages} />,
+    );
+
+    const content = container.querySelector(".nostr-card__content");
+    const nodes = [...content.children];
+
+    // image, separator space, image — no newline between them
+    expect(nodes[0].querySelector("img")).toHaveAttribute(
+      "src",
+      "https://example.com/a.png",
+    );
+    expect(nodes[1].textContent).toBe(" ");
+    expect(nodes[2].querySelector("img")).toHaveAttribute(
+      "src",
+      "https://example.com/b.jpg",
+    );
   });
 
   it("should display reply count in footer for events with e-tags", () => {

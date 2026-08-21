@@ -9,12 +9,69 @@ import {
 import {
   formatRelativeTime,
   truncateHex,
-  extractImageUrls,
-  extractVideoUrls,
-  stripMediaUrls,
   getKindLabel,
+  splitContent,
 } from "./utils";
 import NsfwCheckedImage from "./NsfwCheckedImage";
+
+/**
+ * Shorten content parts so the total text length stays within maxLength,
+ * appending "…" where text was cut. Non-text parts are kept as-is.
+ */
+function truncateText(parts, maxLength) {
+  const totalText = parts.reduce(
+    (sum, part) => (part.type === "text" ? sum + part.value.length : sum),
+    0,
+  );
+  if (totalText <= maxLength) return parts;
+
+  const truncated = [];
+  let remaining = maxLength;
+  let cut = false;
+
+  for (const part of parts) {
+    if (part.type === "text") {
+      if (remaining <= 0) {
+        cut = true;
+        continue;
+      }
+      if (part.value.length > remaining) {
+        truncated.push({ type: "text", value: part.value.slice(0, remaining) });
+        remaining = 0;
+        cut = true;
+      } else {
+        truncated.push(part);
+        remaining -= part.value.length;
+      }
+    } else {
+      truncated.push(part);
+    }
+  }
+
+  if (cut) {
+    for (let i = truncated.length - 1; i >= 0; i -= 1) {
+      if (truncated[i].type === "text") {
+        truncated[i] = { type: "text", value: truncated[i].value + "…" };
+        return truncated;
+      }
+    }
+    truncated.push({ type: "text", value: "…" });
+  }
+  return truncated;
+}
+
+/**
+ * True when a media URL points to a video (direct file or YouTube/Vimeo).
+ */
+function isVideoUrl(url) {
+  return (
+    /\.(?:mp4|webm|ogg)(?:\?[^\s]*)?$/i.test(url) ||
+    /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/)/i.test(
+      url,
+    )
+  );
+}
+
 
 /**
  * NostrEventCard — a React component that displays a single Nostr event.
@@ -40,26 +97,6 @@ export default function NostrEventCard({
   const [showMeta, setShowMeta] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showAllImages, setShowAllImages] = useState(false);
-  const [showAllVideos, setShowAllVideos] = useState(false);
-
-  // Image/video handling
-  const [randomImage] = useState(() => {
-    const urls = extractImageUrls(event?.content || "");
-    if (urls.length > 1) {
-      return urls[Math.floor(Math.random() * urls.length)];
-    }
-    return urls[0] || null;
-  });
-
-  const [randomVideo] = useState(() => {
-    const urls = extractVideoUrls(event?.content || "");
-    if (urls.length > 1) {
-      return urls[Math.floor(Math.random() * urls.length)];
-    }
-    return urls[0] || null;
-  });
-
   // Check if this event is already in favourites on mount and when external changes happen
   useEffect(() => {
     setIsFav(isFavorite(event?.id));
@@ -205,20 +242,16 @@ export default function NostrEventCard({
 
   const { id, kind, pubkey, content, created_at, tags } = event;
 
-  // Determine content display
-  const cleanContent = stripMediaUrls(content || "");
-  const contentPreview =
-    cleanContent && cleanContent.length > 280
-      ? cleanContent.slice(0, 280) + "…"
-      : cleanContent;
+  // Parse content into typed parts (text, media URLs, nostr refs)
+  const contentParts = splitContent(content || "");
+  const displayedParts = expanded
+    ? contentParts
+    : truncateText(contentParts, 280);
+  let imageCount = 0;
 
   // Extract some tag info
   const eTags = (tags || []).filter((t) => t[0] === "e");
   const pTags = (tags || []).filter((t) => t[0] === "p");
-
-  // Image/video handling
-  const imageUrls = extractImageUrls(content);
-  const videoUrls = extractVideoUrls(content);
 
   return (
     <div className="nostr-card" onClick={() => setExpanded(!expanded)}>
@@ -294,99 +327,73 @@ export default function NostrEventCard({
         </div>
       </div>
 
-      {/* Event content */}
+      {/* Event content: text, media URLs and nostr refs in splitContent order */}
       <div className="nostr-card__content">
-        {kind === 1 || kind === 30023 || !kind ? (
-          <p>{expanded ? cleanContent : contentPreview}</p>
-        ) : kind === 7 ? (
+        {kind === 7 ? (
           <p className="nostr-card__reaction">{content || "❤️"}</p>
         ) : (
-          <p>{expanded ? cleanContent : contentPreview}</p>
+          displayedParts.map((part, i) => {
+            if (part.type === "media-url") {
+              const url = part.value;
+              if (isVideoUrl(url)) {
+                return (
+                  <video
+                    key={i}
+                    className="nostr-card__video"
+                    src={url}
+                    controls
+                    preload="metadata"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                );
+              }
+              imageCount += 1;
+              return (
+                <NsfwCheckedImage
+                  key={i}
+                  className="nostr-card__image"
+                  src={url}
+                  alt={`Image ${imageCount}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }}
+                />
+              );
+            }
+
+            if (part.type === "nostr") {
+              return (
+                <a
+                  key={i}
+                  className="nostr-card__nostr-ref"
+                  href={`https://njump.me/${part.value.slice("nostr:".length)}`}
+                  title={part.value}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (part.value.startsWith("nostr:npub")) {
+                      navigate(`/profile/${part.value.slice("nostr:".length)}`);
+                    } else {
+                      window.open(
+                        `https://njump.me/${part.value.slice("nostr:".length)}`,
+                        "_blank",
+                        "noopener,noreferrer",
+                      );
+                    }
+                  }}
+                >
+                  {part.value}
+                </a>
+              );
+            }
+
+            return <span key={i}>{part.value}</span>;
+          })
         )}
       </div>
-
-      {/* Images extracted from content */}
-
-      {imageUrls.length > 0 && (
-        <div className="nostr-card__images">
-          {showAllImages || imageUrls.length === 1 ? (
-            imageUrls.map((url, i) => (
-              <NsfwCheckedImage
-                key={i}
-                className="nostr-card__image"
-                src={url}
-                alt={`Image ${i + 1}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(url, "_blank", "noopener,noreferrer");
-                }}
-              />
-            ))
-          ) : (
-            <>
-              <NsfwCheckedImage
-                className="nostr-card__image"
-                src={randomImage}
-                alt="Image"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(randomImage, "_blank", "noopener,noreferrer");
-                }}
-              />
-              <button
-                className="nostr-card__show-all-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAllImages(true);
-                }}
-              >
-                Show all {imageUrls.length} images
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Videos extracted from content */}
-      {videoUrls.length > 0 && (
-        <div className="nostr-card__videos">
-          {showAllVideos || videoUrls.length === 1 ? (
-            videoUrls.map((url, i) => (
-              <video
-                key={i}
-                className="nostr-card__video"
-                src={url}
-                controls
-                preload="metadata"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Your browser does not support the video tag.
-              </video>
-            ))
-          ) : (
-            <>
-              <video
-                className="nostr-card__video"
-                src={randomVideo}
-                controls
-                preload="metadata"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Your browser does not support the video tag.
-              </video>
-              <button
-                className="nostr-card__show-all-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAllVideos(true);
-                }}
-              >
-                Show all {videoUrls.length} videos
-              </button>
-            </>
-          )}
-        </div>
-      )}
 
       {/* Event metadata (toggleable via the meta button) */}
       {showMeta && (

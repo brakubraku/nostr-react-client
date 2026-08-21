@@ -186,12 +186,25 @@ describe("Utility functions", () => {
       ]);
     });
 
-    it("should split text and image URLs into typed parts", () => {
+    it("should start media on a new line when it follows text", () => {
       const result = splitContent("Look https://example.com/a.png here");
       expect(result).toEqual([
         { type: "text", value: "Look " },
+        { type: "text", value: "\n" },
         { type: "media-url", value: "https://example.com/a.png" },
+        { type: "text", value: "\n" },
         { type: "text", value: " here" },
+      ]);
+    });
+
+    it("should keep consecutive media URLs on the same line", () => {
+      const result = splitContent(
+        "https://example.com/a.png\nhttps://example.com/b.jpg",
+      );
+      expect(result).toEqual([
+        { type: "media-url", value: "https://example.com/a.png" },
+        { type: "text", value: " " },
+        { type: "media-url", value: "https://example.com/b.jpg" },
       ]);
     });
 
@@ -199,18 +212,70 @@ describe("Utility functions", () => {
       const result = splitContent("https://youtu.be/dQw4w9WgXcQ wow");
       expect(result).toEqual([
         { type: "media-url", value: "https://youtu.be/dQw4w9WgXcQ" },
+        { type: "text", value: "\n" },
         { type: "text", value: " wow" },
       ]);
     });
 
-    it("should split nostr entity references into nostr parts", () => {
+    it("should start nostr refs on a new line when they follow text", () => {
       const npub =
         "nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
       const result = splitContent(`hi ${npub} bye`);
       expect(result).toEqual([
         { type: "text", value: "hi " },
+        { type: "text", value: "\n" },
         { type: "nostr", value: npub },
+        { type: "text", value: "\n" },
         { type: "text", value: " bye" },
+      ]);
+    });
+
+    it("should keep consecutive npub refs on the same line", () => {
+      const npub1 =
+        "nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+      const npub2 =
+        "nostr:npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr";
+      const result = splitContent(`${npub1} ${npub2}`);
+      expect(result).toEqual([
+        { type: "nostr", value: npub1 },
+        { type: "text", value: " " },
+        { type: "nostr", value: npub2 },
+      ]);
+    });
+
+    it("should put consecutive note refs on separate lines", () => {
+      const note1 =
+        "nostr:note1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+      const note2 =
+        "nostr:note1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr";
+      const result = splitContent(`${note1} ${note2}`);
+      expect(result).toEqual([
+        { type: "nostr", value: note1 },
+        { type: "text", value: " " },
+        { type: "text", value: "\n" },
+        { type: "nostr", value: note2 },
+      ]);
+    });
+
+    it("should put consecutive nevent refs on separate lines", () => {
+      const nevent1 =
+        "nostr:nevent1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+      const nevent2 =
+        "nostr:nevent1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqr";
+      const result = splitContent(`${nevent1} ${nevent2}`);
+      expect(result).toEqual([
+        { type: "nostr", value: nevent1 },
+        { type: "text", value: " " },
+        { type: "text", value: "\n" },
+        { type: "nostr", value: nevent2 },
+      ]);
+    });
+
+    it("should not add a newline when the preceding text already ends with one", () => {
+      const result = splitContent("Caption\nhttps://example.com/a.png");
+      expect(result).toEqual([
+        { type: "text", value: "Caption\n" },
+        { type: "media-url", value: "https://example.com/a.png" },
       ]);
     });
 
@@ -221,7 +286,9 @@ describe("Utility functions", () => {
       expect(result).toEqual([
         { type: "nostr", value: npub },
         { type: "text", value: " " },
+        { type: "text", value: "\n" },
         { type: "media-url", value: "https://example.com/i.gif" },
+        { type: "text", value: "\n" },
         { type: "text", value: " text" },
       ]);
     });

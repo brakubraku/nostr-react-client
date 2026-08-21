@@ -72,6 +72,14 @@ export function extractVideoUrls(content: string | null | undefined): string[] {
 /**
  * Split content into typed segments for rendering: plain text, media URLs,
  * and "nostr:" entity references.
+ *
+ * Newlines are decided here rather than by the renderer: a segment starts
+ * on a new line when it is not preceded by a segment of the same content
+ * type (whitespace-only text is ignored for that check), and consecutive
+ * note/nevent references each start on a new line (consecutive npub
+ * references stay together). Needed newlines are emitted as
+ * "\n" text segments; whitespace-only text between segments is normalized
+ * to a single space.
  */
 export function splitContent(content: string | null | undefined): ContentType[] {
   if (!content) return [];
@@ -95,7 +103,40 @@ export function splitContent(content: string | null | undefined): ContentType[] 
   if (lastIndex < content.length) {
     parts.push({ type: "text", value: content.slice(lastIndex) });
   }
-  return parts;
+
+  const result: ContentType[] = [];
+  let lastVisibleType: ContentType["type"] | null = null;
+  let previousRendered: ContentType | null = null;
+
+  for (const part of parts) {
+    if (part.type === "text" && part.value.trim() === "") {
+      result.push({ type: "text", value: " " });
+      previousRendered = result[result.length - 1];
+      continue;
+    }
+
+    const previousBreaksLine =
+      previousRendered?.type === "text" &&
+      /\n\s*$/.test(previousRendered.value);
+    const currentBreaksLine =
+      part.type === "text" && /^\s*\n/.test(part.value);
+    const eventRefOnNewLine =
+      part.type === "nostr" &&
+      (part.value.startsWith("nostr:note") ||
+        part.value.startsWith("nostr:nevent"));
+    const startNewLine =
+      lastVisibleType !== null &&
+      (part.type !== lastVisibleType || eventRefOnNewLine);
+
+    if (startNewLine && !previousBreaksLine && !currentBreaksLine) {
+      result.push({ type: "text", value: "\n" });
+    }
+    result.push(part);
+    previousRendered = part;
+    lastVisibleType = part.type;
+  }
+
+  return result;
 }
 
 /**
