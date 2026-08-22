@@ -14,6 +14,7 @@ let ndkInstance = null;
  * @param {object} [options]
  * @param {string[]} [options.explicitRelayUrls] - Relay URLs to connect to.
  * @param {boolean} [options.aiGuardrails] - Enable AI guardrails (default: true).
+ * @param {import("@nostr-dev-kit/ndk").NDKCacheAdapter} [options.cacheAdapter] - Cache adapter for event caching.
  * @returns {NDK} The global NDK instance.
  */
 export function getNDK(options = {}) {
@@ -21,6 +22,7 @@ export function getNDK(options = {}) {
     ndkInstance = new NDK({
       explicitRelayUrls: options.explicitRelayUrls || DEFAULT_RELAYS,
       aiGuardrails: options.aiGuardrails ?? true,
+      cacheAdapter: options.cacheAdapter,
     });
   }
 
@@ -33,6 +35,7 @@ export function getNDK(options = {}) {
  *
  * @param {object} [options]
  * @param {number} [options.timeout] - Connection timeout in ms.
+ * @param {import("@nostr-dev-kit/ndk").NDKCacheAdapter} [options.cacheAdapter] - Cache adapter for event caching.
  * @returns {Promise<NDK>} Resolves with the connected NDK instance.
  */
 export async function connectNDK(options = {}) {

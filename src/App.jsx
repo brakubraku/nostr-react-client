@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import { connectNDK, getNDK } from "./ndk";
+import NDKCacheAdapterDexie from "@nostr-dev-kit/ndk-cache-dexie";
 import NostrFeed from "./NostrFeed";
 import NostrEventViewer from "./NostrEventViewer";
 import NostrFavourites from "./NostrFavourites";
@@ -17,23 +18,45 @@ const FEED_RELAYS = [
   "wss://relay.damus.io",
 ];
 
-const ndk = getNDK({ explicitRelayUrls: FEED_RELAYS });
+// Persistent (IndexedDB) cache for events and profiles, shared by the NDK
+// instance. It must be attached when the instance is created (below).
+const ndkCacheAdapter = new NDKCacheAdapterDexie({
+  dbName: "nostr-events-cache",
+});
 
 function AppLayout() {
-  // Connect the shared NDK instance once when the app mounts. connectNDK
-  // reuses the instance created above; failures are logged by the ndk module,
-  // and the catch here just prevents an unhandled promise rejection.
+  const [ndk, setNdk] = useState(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Create and connect the shared NDK instance once when the app mounts.
+  // Until ndk is assigned (non-null) only a spinner is rendered, so no
+  // component ever receives a null ndk. connectNDK reuses the instance
+  // created by getNDK; failures are logged by the ndk module.
   useEffect(() => {
     let cancelled = false;
-    connectNDK({ explicitRelayUrls: FEED_RELAYS }).catch((err) => {
-      if (!cancelled) console.error("Failed to connect shared NDK:", err);
-    });
+
+    async function init() {
+      const instance = getNDK({
+        explicitRelayUrls: FEED_RELAYS,
+        cacheAdapter: ndkCacheAdapter,
+      });
+      try {
+        await connectNDK({
+          explicitRelayUrls: FEED_RELAYS,
+          cacheAdapter: ndkCacheAdapter,
+          timeout: 10000,
+        });
+      } catch (err) {
+        if (!cancelled) console.error("Failed to connect shared NDK:", err);
+      }
+      if (!cancelled) setNdk(instance);
+    }
+
+    init();
     return () => {
       cancelled = true;
     };
   }, []);
-
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,6 +72,18 @@ function AppLayout() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Wait for the NDK instance before rendering the app, so components never
+  // receive a null ndk prop.
+  if (!ndk) {
+    return (
+      <div className="app">
+        <div className="app__loading" role="status" aria-label="Loading">
+          <span className="app__spinner" aria-hidden="true" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">

@@ -3,6 +3,30 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AppLayout } from "../App";
 
+// Minimal NDK stub used by the mocked ndk module.
+const { mockNdk } = vi.hoisted(() => ({
+  mockNdk: {
+    connect: vi.fn(async () => {}),
+    subscribe: vi.fn(() => ({
+      on: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+    })),
+    fetchEvents: vi.fn(async () => new Set()),
+    fetchEvent: vi.fn(async () => null),
+    getUser: vi.fn(() => ({
+      fetchProfile: vi.fn().mockResolvedValue(undefined),
+      profile: {},
+    })),
+  },
+}));
+
+vi.mock("../ndk", () => ({
+  getNDK: vi.fn(() => mockNdk),
+  connectNDK: vi.fn(async () => mockNdk),
+  disconnectNDK: vi.fn(),
+}));
+
 describe("App", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -16,9 +40,29 @@ describe("App", () => {
     );
   }
 
-  it("should render navigation links", () => {
+  it("shows only a spinner until ndk is assigned", async () => {
+    const { connectNDK } = await import("../ndk");
+    let resolveConnect;
+    vi.mocked(connectNDK).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveConnect = resolve;
+      }),
+    );
+
+    const { container } = renderWithRouter("/");
+
+    // While ndk is null, only the spinner is shown
+    expect(container.querySelector(".app__spinner")).toBeInTheDocument();
+    expect(screen.queryByText("Live Feed")).not.toBeInTheDocument();
+
+    // Once ndk is assigned, the app renders
+    resolveConnect(mockNdk);
+    expect(await screen.findByText("Live Feed")).toBeInTheDocument();
+  });
+
+  it("should render navigation links", async () => {
     renderWithRouter("/");
-    expect(screen.getByText("Live Feed")).toBeInTheDocument();
+    expect(await screen.findByText("Live Feed")).toBeInTheDocument();
     expect(screen.getByText("Event Lookup")).toBeInTheDocument();
     expect(screen.getByText("Profile")).toBeInTheDocument();
     expect(screen.getByText("⭐ Favourites")).toBeInTheDocument();
@@ -36,11 +80,6 @@ describe("App", () => {
     renderWithRouter("/viewer");
     await waitFor(() => {
       expect(screen.getByText("Nostr Event Viewer")).toBeInTheDocument();
-      // expect(
-      //   screen.getByText(
-      //     /Pass an <code> eventId <\/code> prop to view a specific event/,
-      //   ),
-      // ).toBeInTheDocument();
     });
   });
 
@@ -70,9 +109,9 @@ describe("App", () => {
     });
   });
 
-  it("should have an active class on the current nav link", () => {
+  it("should have an active class on the current nav link", async () => {
     renderWithRouter("/favourites");
-    const favLink = screen.getByText("⭐ Favourites").closest("a");
+    const favLink = (await screen.findByText("⭐ Favourites")).closest("a");
     expect(favLink).toHaveClass("app__nav-btn--active");
   });
 
@@ -85,8 +124,9 @@ describe("App", () => {
     });
   });
 
-  it("shows the scroll-to-top button after scrolling down and scrolls to the top on click", () => {
+  it("shows the scroll-to-top button after scrolling down and scrolls to the top on click", async () => {
     renderWithRouter("/favourites");
+    await screen.findByText("⭐ Favourites");
     expect(
       screen.queryByRole("button", { name: "Scroll to top" }),
     ).not.toBeInTheDocument();
