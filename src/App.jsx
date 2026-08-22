@@ -126,7 +126,7 @@ function AppLayout() {
           <Route path="/profile/:pubkey" element={<NostrProfile ndk={ndk} />} />
 
           <Route path="/favourites" element={<NostrFavourites ndk={ndk} />} />
-          <Route path="/following" element={<NostrFollowing />} />
+          <Route path="/following" element={<NostrFollowing ndk={ndk} />} />
         </Routes>
       </main>
 

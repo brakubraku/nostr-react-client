@@ -1,35 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { getFollows, followsToText, importFollowsText } from "./follows";
-import { truncateHex } from "./utils";
-
-/**
- * FollowingAvatar — the account's profile picture, falling back to an
- * initial placeholder when no picture is available or it fails to load.
- */
-function FollowingAvatar({ account }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const displayName =
-    account.displayName || account.name || truncateHex(account.pubkey);
-
-  if (account.picture && !imgFailed) {
-    return (
-      <img
-        className="nostr-following__avatar"
-        src={account.picture}
-        alt=""
-        loading="lazy"
-        onError={() => setImgFailed(true)}
-      />
-    );
-  }
-
-  return (
-    <div className="nostr-following__avatar nostr-following__avatar-placeholder">
-      {displayName.charAt(0).toUpperCase()}
-    </div>
-  );
-}
+import AccountCard from "./AccountCard";
 
 /**
  * NostrFollowing — displays all followed accounts from localStorage.
@@ -38,8 +9,7 @@ function FollowingAvatar({ account }) {
  * and name; clicking a tile opens that account's profile page. The header
  * provides Export/Import buttons for moving the list to/from a text file.
  */
-export default function NostrFollowing() {
-  const navigate = useNavigate();
+export default function NostrFollowing({ ndk }) {
   const [follows, setFollows] = useState([]);
   const [status, setStatus] = useState(null);
   const fileInputRef = useRef(null);
@@ -164,21 +134,9 @@ export default function NostrFollowing() {
         </div>
       ) : (
         <div className="nostr-following__grid">
-          {follows.map((account) => {
-            const displayName =
-              account.displayName || account.name || truncateHex(account.pubkey);
-            return (
-              <button
-                key={account.pubkey}
-                className="nostr-following__card"
-                onClick={() => navigate(`/profile/${account.pubkey}`)}
-                title={`View ${displayName}'s profile`}
-              >
-                <FollowingAvatar account={account} />
-                <span className="nostr-following__name">{displayName}</span>
-              </button>
-            );
-          })}
+          {follows.map((account) => (
+            <AccountCard key={account.pubkey} pubkey={account.pubkey} ndk={ndk} />
+          ))}
         </div>
       )}
     </div>
