@@ -1,7 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import Thread from "./Thread";
 import { getFollows, isFollowing, toggleFollow } from "./follows";
+
+/**
+ * Merge incoming events into an existing list, deduplicating by event id and
+ * keeping the newest events first.
+ */
+function mergeEvents(existing, incoming) {
+  const byId = new Map(existing.map((event) => [event.id, event]));
+  for (const event of incoming) {
+    if (event?.id && !byId.has(event.id)) {
+      byId.set(event.id, event);
+    }
+  }
+  return [...byId.values()].sort(
+    (a, b) => (b.created_at || 0) - (a.created_at || 0),
+  );
+}
 
 /**
  * NostrProfile — a React component that looks up a Nostr user's profile
@@ -21,7 +37,14 @@ export default function NostrProfile({ ndk }) {
   const [error, setError] = useState(null);
   const [isFollowed, setIsFollowed] = useState(false);
 
+  const eventsSubRef = useRef(null);
+
   const [sortOrder, setSortOrder] = useState("newest");
+
+  // Stop the active events subscription when the component unmounts
+  useEffect(() => {
+    return () => eventsSubRef.current?.stop?.();
+  }, []);
 
   // Check follow status whenever the looked-up pubkey changes
   useEffect(() => {
@@ -88,6 +111,8 @@ export default function NostrProfile({ ndk }) {
     setError(null);
     setProfile(null);
     setEvents([]);
+    eventsSubRef.current?.stop?.();
+    eventsSubRef.current = null;
 
     try {
       const resolved = await resolvePubkey(input);
@@ -106,8 +131,8 @@ export default function NostrProfile({ ndk }) {
       await user.fetchProfile();
       setProfile(user.profile || {});
 
-      // Fetch user events (kind 1 text notes)
-      await fetchUserEvents(resolved);
+      // Subscribe to the user's events (kind 1 text notes, kind 30023 long-form)
+      subscribeUserEvents(resolved);
     } catch (err) {
       setError(`Error fetching profile: ${err.message}`);
     }
@@ -116,29 +141,33 @@ export default function NostrProfile({ ndk }) {
   }
 
   /**
-   * Fetch events published by the user.
+   * Subscribe to events published by the user, keeping the subscription open
+   * so new events arrive live. Incoming events are merged into state, deduped
+   * by id and sorted newest first.
    */
-  async function fetchUserEvents(pubkeyHex) {
+  function subscribeUserEvents(pubkeyHex) {
     if (!pubkeyHex) return;
 
     setEventsLoading(true);
 
-    try {
-      const fetchedEvents = await ndk.fetchEvents({
-        authors: [pubkeyHex],
-        kinds: [1, 30023],
-        limit: 50,
-      });
+    const sub = ndk.subscribe(
+      { authors: [pubkeyHex], kinds: [1, 30023], limit: 50 },
+      {
+        closeOnEose: false,
+        onEvents: (incomingEvents) => {
+          setEvents((prev) => mergeEvents(prev, incomingEvents));
+        },
+        onEvent: (event) => {
+          setEvents((prev) => mergeEvents(prev, [event]));
+        },
+        onEose: () => {
+          // Initial load complete; keep listening for live events
+          setEventsLoading(false);
+        },
+      },
+    );
 
-      const sorted = [...fetchedEvents].sort(
-        (a, b) => (b.created_at || 0) - (a.created_at || 0),
-      );
-      setEvents(sorted);
-    } catch (err) {
-      console.error("Error fetching user events:", err);
-    }
-
-    setEventsLoading(false);
+    eventsSubRef.current = sub;
   }
 
   /**

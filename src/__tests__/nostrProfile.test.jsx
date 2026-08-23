@@ -37,7 +37,7 @@ const mockNdk = {
     fetchProfile: vi.fn().mockResolvedValue(undefined),
     profile: mockProfile,
   })),
-  fetchEvents: vi.fn().mockResolvedValue(new Map()),
+  subscribe: vi.fn(() => ({ stop: vi.fn() })),
 };
 
 function renderProfile() {
@@ -122,6 +122,20 @@ describe("NostrProfile profile lookup", () => {
     expect(mockNdk.getUser).toHaveBeenCalledWith({ pubkey: VALID_PUBKEY });
     const user = mockNdk.getUser.mock.results.at(-1).value;
     expect(user.fetchProfile).toHaveBeenCalled();
+  });
+
+  it("subscribes to the user's events with the author filter", async () => {
+    renderProfile();
+
+    await screen.findByText("Alice");
+
+    expect(mockNdk.subscribe).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authors: [VALID_PUBKEY],
+        kinds: [1, 30023],
+      }),
+      expect.objectContaining({ closeOnEose: false }),
+    );
   });
 });
 
