@@ -27,23 +27,28 @@ export default function ReplySidePanel({
     if (!ndk || !event?.id) return;
 
     const op = event instanceof NDKEvent ? event : new NDKEvent(ndk, event);
-    const replySub = ndk.subscribe(
-      { "#e": [event.id] },
-      {
-        onEvent: (replyEvent) => {
-          const reply =
-            replyEvent instanceof NDKEvent
-              ? replyEvent
-              : new NDKEvent(ndk, replyEvent);
-          // Keep actual replies, dropping events that merely reference this
-          // event (e.g. reposts, reactions, mentions).
-          if (!eventIsReply(op, reply)) return;
-          setReplies((prev) =>
-            prev.some((r) => r.id === reply.id) ? prev : [...prev, reply],
-          );
+    let replySub;
+    try {
+      replySub = ndk.subscribe(
+        { "#e": [event.id] },
+        {
+          onEvent: (replyEvent) => {
+            const reply =
+              replyEvent instanceof NDKEvent
+                ? replyEvent
+                : new NDKEvent(ndk, replyEvent);
+            // Keep actual replies, dropping events that merely reference this
+            // event (e.g. reposts, reactions, mentions).
+            if (!eventIsReply(op, reply)) return;
+            setReplies((prev) =>
+              prev.some((r) => r.id === reply.id) ? prev : [...prev, reply],
+            );
+          },
         },
-      },
-    );
+      );
+    } catch (error) {
+      console.error("Failed to subscribe to replies:", error);
+    }
 
     return () => replySub?.stop?.();
   }, [ndk, event]);
