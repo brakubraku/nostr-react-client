@@ -1,4 +1,5 @@
 import * as nsfwjs from "nsfwjs";
+import { setGauge, trace } from "./observability";
 
 /**
  * NSFW image checking built on nsfwjs.
@@ -14,7 +15,7 @@ let modelPromise = null;
 
 function getModel() {
   if (!modelPromise) {
-    modelPromise = nsfwjs.load().catch((error) => {
+    modelPromise = trace("nsfw.modelLoad", () => nsfwjs.load()).catch((error) => {
       modelPromise = null; // allow a retry on the next image
       throw error;
     });
@@ -30,7 +31,7 @@ function getModel() {
 export async function classifyImage(image) {
   try {
     const model = await getModel();
-    return await model.classify(image);
+    return await trace("nsfw.classify", () => model.classify(image));
   } catch (error) {
     console.warn("NSFWJS classification failed:", error);
     return null;
@@ -77,6 +78,7 @@ export async function checkImageUrl(url) {
     result.error = error;
   }
   resultCache.set(url, result);
+  setGauge("nsfw.cache", resultCache.size);
   return result;
 }
 
@@ -86,11 +88,15 @@ export async function checkImageUrl(url) {
  * URL is treated as safe (shown as-is).
  */
 function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const probe = new Image();
-    probe.crossOrigin = "anonymous";
-    probe.onload = () => resolve(probe);
-    probe.onerror = () => reject(new Error(`image failed to load: ${url}`));
-    probe.src = url;
-  });
+  return trace(
+    "nsfw.imageLoad",
+    () =>
+      new Promise((resolve, reject) => {
+        const probe = new Image();
+        probe.crossOrigin = "anonymous";
+        probe.onload = () => resolve(probe);
+        probe.onerror = () => reject(new Error(`image failed to load: ${url}`));
+        probe.src = url;
+      }),
+  );
 }

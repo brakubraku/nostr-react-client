@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Thread from "./Thread";
+import { setGauge, traceSync } from "./observability";
 
 /**
  * Default relay URLs to connect to.
@@ -46,6 +47,11 @@ export default function NostrFeed({
   const [contentType, setContentType] = useState(defaultContentType);
   const subRef = useRef(null);
 
+  // Keep the observability "feed.events" memory gauge in sync.
+  useEffect(() => {
+    setGauge("feed.events", events.length);
+  }, [events]);
+
   // Resolve the selected content type and build the subscription filter.
   // The dropdown overrides any `kinds` from the filter prop; everything else
   // (e.g. limit) is preserved.
@@ -81,11 +87,13 @@ export default function NostrFeed({
         onEvent: (event) => {
           if (cancelled) return;
           if (paused) return;
-          setEvents((prev) => {
-            // Avoid duplicates by event id
-            if (prev.some((e) => e.id === event.id)) return prev;
-            const updated = [event, ...prev];
-            return updated.slice(0, limit);
+          traceSync("feed.onEvent", () => {
+            setEvents((prev) => {
+              // Avoid duplicates by event id
+              if (prev.some((e) => e.id === event.id)) return prev;
+              const updated = [event, ...prev];
+              return updated.slice(0, limit);
+            });
           });
         },
         onEose: () => {
