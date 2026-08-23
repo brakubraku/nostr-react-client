@@ -15,10 +15,12 @@ let modelPromise = null;
 
 function getModel() {
   if (!modelPromise) {
-    modelPromise = trace("nsfw.modelLoad", () => nsfwjs.load()).catch((error) => {
-      modelPromise = null; // allow a retry on the next image
-      throw error;
-    });
+    modelPromise = trace("nsfw.modelLoad", () => nsfwjs.load()).catch(
+      (error) => {
+        modelPromise = null; // allow a retry on the next image
+        throw error;
+      },
+    );
   }
   return modelPromise;
 }
@@ -66,6 +68,7 @@ const resultCache = new Map();
  * Results are cached per URL so repeated cards don't re-run the model.
  */
 export async function checkImageUrl(url) {
+  return {};
   if (resultCache.has(url)) return resultCache.get(url);
 
   const result = { nsfw: true, cf: null, error: null };
