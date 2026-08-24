@@ -9,20 +9,13 @@ function EventWithReplies({
   showReplies = false,
   onShowReplies,
   continuationReply,
-  flash = false,
 }) {
   const [replies, setReplies] = useState([]);
   const [repliesVisible, setRepliesVisible] = useState(showReplies);
 
   return (
     <div className="nostr-thread__event-with-replies">
-      <div
-        className={
-          flash
-            ? "nostr-thread__event nostr-thread__event-with-replies--flash"
-            : "nostr-thread__event"
-        }
-      >
+      <div className="nostr-thread__event">
         <NostrEventCard event={event} ndk={ndk} />
         <ReplySidePanel
           event={event}
@@ -37,16 +30,9 @@ function EventWithReplies({
       </div>
       {repliesVisible && replies.length > 0 && (
         <div className="nostr-thread__reply-group">
-          {continuationReply && (
-            <EventWithReplies
-              key={continuationReply.id}
-              event={continuationReply}
-              ndk={ndk}
-              flash
-            />
-          )}
+          {continuationReply && continuationReply.body}
           {replies.map((reply) => {
-            if (reply.id === continuationReply?.id) return; // already added above
+            if (reply.id === continuationReply?.event.id) return; // already added above
             return <EventWithReplies key={reply.id} event={reply} ndk={ndk} />;
           })}
         </div>
@@ -124,7 +110,7 @@ export default function Thread({
       <Thread
         event={parentEvent}
         ndk={ndk}
-        continuationReply={{ ...event }}
+        continuationReply={{ event: { ...event }, body: eventView }}
         showReplies={true}
       />
     );

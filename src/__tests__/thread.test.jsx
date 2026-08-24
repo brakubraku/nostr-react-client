@@ -60,14 +60,6 @@ describe("Thread", () => {
     expect(screen.getByText("Main event content")).toBeInTheDocument();
   });
 
-  it("should mark the main event with a flash highlight", () => {
-    const { container } = renderThread(mainEvent);
-    const mainEventNode = container.querySelector(
-      ".nostr-thread__event-with-replies",
-    );
-    expect(mainEventNode).toHaveClass("nostr-thread__event-with-replies--flash");
-  });
-
   it("should show an empty state when no event is provided", () => {
     renderThread(null);
     expect(screen.getByText("No event data")).toBeInTheDocument();
