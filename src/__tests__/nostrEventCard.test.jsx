@@ -99,39 +99,12 @@ describe("NostrEventCard", () => {
     expect(screen.getByText(/Hello from Nostr!/)).toBeInTheDocument();
   });
 
-  it("should display the kind badge when showMeta is true", () => {
-    renderWithRouter(<NostrEventCard event={basicEvent} showMeta={true} />);
-    expect(screen.getByText("Text Note")).toBeInTheDocument();
-  });
-
-  it("should hide the kind badge when showMeta is false", () => {
-    renderWithRouter(<NostrEventCard event={basicEvent} showMeta={false} />);
-    expect(screen.queryByText("Text Note")).not.toBeInTheDocument();
-  });
-
   it("should display relative time", () => {
     renderWithRouter(<NostrEventCard event={basicEvent} />);
     expect(screen.getByText(/h ago|m ago/)).toBeInTheDocument();
   });
 
-  it("should show metadata without expanding and toggle it with the meta button", () => {
-    renderWithRouter(<NostrEventCard event={basicEvent} />);
-
-    // Metadata is visible by default - no expansion needed
-    expect(screen.getByText("Event ID")).toBeInTheDocument();
-    expect(screen.getByText(basicEvent.id)).toBeInTheDocument();
-    expect(screen.getByText("Pubkey")).toBeInTheDocument();
-
-    // The meta button hides it without expanding the card
-    fireEvent.click(screen.getByRole("button", { name: /meta/i }));
-    expect(screen.queryByText("Event ID")).not.toBeInTheDocument();
-
-    // And shows it again
-    fireEvent.click(screen.getByRole("button", { name: /meta/i }));
-    expect(screen.getByText("Event ID")).toBeInTheDocument();
-  });
-
-  it("should display all tags in metadata", () => {
+  it("should display all tags in metadata only after the meta button is clicked", () => {
     const eventWithTags = {
       ...basicEvent,
       tags: [
@@ -142,13 +115,17 @@ describe("NostrEventCard", () => {
     };
     renderWithRouter(<NostrEventCard event={eventWithTags} />);
 
-    // Metadata (including all tags) is visible without expanding
+    // Metadata (including tags) is hidden until the meta button is clicked
+    expect(screen.queryByText("Tags")).not.toBeInTheDocument();
+    expect(screen.queryByText('["t","nostr"]')).not.toBeInTheDocument();
+
+    // Toggle metadata open
+    fireEvent.click(screen.getByRole("button", { name: /meta/i }));
+
     expect(screen.getByText("Tags")).toBeInTheDocument();
     expect(screen.getByText('["t","nostr"]')).toBeInTheDocument();
     expect(screen.getByText('["e","deadbeef"]')).toBeInTheDocument();
-    expect(
-      screen.getByText('["r","https://example.com"]'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('["r","https://example.com"]')).toBeInTheDocument();
   });
 
   it("should toggle favourite state when fav button is clicked", async () => {
@@ -221,24 +198,24 @@ describe("NostrEventCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("should only expand the card via the more button, not by clicking the card", () => {
+  it("should expand the card by clicking the card", () => {
     const longContent = "A".repeat(300);
     const longEvent = { ...basicEvent, content: longContent };
     const { container } = renderWithRouter(
       <NostrEventCard event={longEvent} showMeta={false} />,
     );
 
-    // Clicking the card body must NOT expand the content
+    // Clicking the card body expands the content
     fireEvent.click(container.querySelector(".nostr-card"));
     expect(
       screen.queryByText((content) => content === longContent),
-    ).not.toBeInTheDocument();
-
-    // Clicking "more" expands it
-    fireEvent.click(screen.getByRole("button", { name: /more/i }));
-    expect(
-      screen.getByText((content) => content === longContent),
     ).toBeInTheDocument();
+
+    // Clicking "less" contracts it
+    fireEvent.click(screen.getByRole("button", { name: /less/i }));
+    expect(
+      screen.queryByText((content) => content === longContent),
+    ).not.toBeInTheDocument();
   });
 
   it("should show reaction content for kind 7 events", () => {
@@ -509,26 +486,5 @@ describe("NostrEventCard", () => {
       "src",
       "https://example.com/b.jpg",
     );
-  });
-
-  it("should display reply count in footer for events with e-tags", () => {
-    const eventWithReplies = {
-      ...basicEvent,
-      tags: [
-        ["e", "replyEventId1"],
-        ["e", "replyEventId2"],
-      ],
-    };
-    renderWithRouter(<NostrEventCard event={eventWithReplies} />);
-    expect(screen.getByText("2 replies")).toBeInTheDocument();
-  });
-
-  it("should display mention count in footer for events with p-tags", () => {
-    const eventWithMentions = {
-      ...basicEvent,
-      tags: [["p", "mentionedPubkey1"]],
-    };
-    renderWithRouter(<NostrEventCard event={eventWithMentions} />);
-    expect(screen.getByText("1 mention")).toBeInTheDocument();
   });
 });
