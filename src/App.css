@@ -1477,14 +1477,20 @@
   text-align: center;
 }
 
-.nostr-thread__reply-count {
+.nostr-thread__reply-count,
+.nostr-thread__reaction-count {
   font-size: 20px;
   font-weight: 600;
   line-height: 1;
   color: var(--text-h);
 }
 
-.nostr-thread__reply-label {
+.nostr-thread__reaction-count {
+  color: var(--accent);
+}
+
+.nostr-thread__reply-label,
+.nostr-thread__reaction-label {
   display: block;
   margin-top: 5px;
   font-size: 11px;
