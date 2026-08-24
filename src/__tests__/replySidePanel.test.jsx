@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import ReplySidePanel from "../ReplySidePanel";
 import { eventIsReply } from "@nostr-dev-kit/ndk";
 
@@ -19,8 +20,9 @@ vi.mock("@nostr-dev-kit/ndk", () => {
 });
 
 const subscribeMock = vi.fn();
+const getUserMock = vi.fn();
 // Mock NDK instance passed via props
-const mockNdk = { subscribe: subscribeMock };
+const mockNdk = { subscribe: subscribeMock, getUser: getUserMock };
 
 const mainEvent = {
   id: "mainEventId123",
@@ -42,12 +44,16 @@ function makeReply(id) {
   };
 }
 
-function makeReaction(id) {
+function makeReaction(
+  id,
+  content = "❤️",
+  pubkey = "reactionpubkey1234567890123456789012345678901234567890",
+) {
   return {
     id,
     kind: 7,
-    pubkey: "reactionpubkey1234567890123456789012345678901234567890",
-    content: "❤️",
+    pubkey,
+    content,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ["e", mainEvent.id],
@@ -56,17 +62,27 @@ function makeReaction(id) {
   };
 }
 
+function makeUser(pubkey, profile = {}) {
+  return {
+    pubkey,
+    profile,
+    fetchProfile: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
 function renderPanel({
   onRepliesChange = vi.fn(),
   onReactionsChange = vi.fn(),
 } = {}) {
   return render(
-    <ReplySidePanel
-      event={mainEvent}
-      ndk={mockNdk}
-      onRepliesChange={onRepliesChange}
-      onReactionsChange={onReactionsChange}
-    />,
+    <MemoryRouter>
+      <ReplySidePanel
+        event={mainEvent}
+        ndk={mockNdk}
+        onRepliesChange={onRepliesChange}
+        onReactionsChange={onReactionsChange}
+      />
+    </MemoryRouter>,
   );
 }
 
@@ -75,6 +91,8 @@ describe("ReplySidePanel", () => {
     vi.clearAllMocks();
     subscribeMock.mockReset();
     subscribeMock.mockImplementation(() => ({ stop: vi.fn() }));
+    getUserMock.mockReset();
+    getUserMock.mockImplementation(({ pubkey }) => makeUser(pubkey));
     // Default: treat everything that isn't a reaction as a reply, so callers
     // can override per-test when checking the reply discrimination.
     vi.mocked(eventIsReply).mockImplementation((op, event) => event.kind !== 7);
@@ -183,6 +201,205 @@ describe("ReplySidePanel", () => {
       expect(
         container.querySelector(".nostr-thread__reaction-count")?.textContent,
       ).toContain("1");
+    });
+  });
+
+  it("opens a modal grouped by reaction and shows the reacting profiles", async () => {
+    const alice = "reactionpubkeyaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const bob = "reactionpubkeybbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const carol = "reactionpubkeyccccccccccccccccccccccccccccccccccccccc";
+    const profilesByPubkey = {
+      [alice]: { name: "Alice", picture: "https://example.com/alice.png" },
+      [bob]: { displayName: "Bobby" },
+      [carol]: { name: "Carol" },
+    };
+    getUserMock.mockImplementation(({ pubkey }) =>
+      makeUser(pubkey, profilesByPubkey[pubkey]),
+    );
+
+    subscribeMock.mockImplementation((filter, opts) => {
+      opts.onEvent(makeReaction("react1", "❤️", alice));
+      opts.onEvent(makeReaction("react2", "👍", bob));
+      opts.onEvent(makeReaction("react3", "❤️", carol));
+      return { stop: vi.fn() };
+    });
+
+    const { container } = renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /reaction/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Reactions" }),
+      ).toBeInTheDocument();
+    });
+
+    // Grouped by emoji, with per-group counts.
+    const groups = container.querySelectorAll(".nostr-thread__reaction-group");
+    expect(groups.length).toBe(2);
+
+    expect(
+      groups[0].querySelector(".nostr-thread__reaction-group-emoji")
+        .textContent,
+    ).toBe("❤️");
+    expect(
+      groups[0].querySelector(".nostr-thread__reaction-group-count")
+        .textContent,
+    ).toBe("2");
+    expect(groups[0].textContent).toContain("Alice");
+    expect(groups[0].textContent).toContain("Carol");
+
+    expect(
+      groups[1].querySelector(".nostr-thread__reaction-group-emoji")
+        .textContent,
+    ).toBe("👍");
+    expect(
+      groups[1].querySelector(".nostr-thread__reaction-group-count")
+        .textContent,
+    ).toBe("1");
+    expect(groups[1].textContent).toContain("Bobby");
+
+    // Profiles were fetched for each reactor.
+    await waitFor(() => {
+      expect(getUserMock).toHaveBeenCalledWith({ pubkey: alice });
+      expect(getUserMock).toHaveBeenCalledWith({ pubkey: bob });
+      expect(getUserMock).toHaveBeenCalledWith({ pubkey: carol });
+    });
+  });
+
+  it("treats a '+' reaction as a thumbs up", async () => {
+    const alice = "reactionpubkeyaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const bob = "reactionpubkeybbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    getUserMock.mockImplementation(({ pubkey }) =>
+      makeUser(pubkey, { name: pubkey === alice ? "Alice" : "Bobby" }),
+    );
+
+    subscribeMock.mockImplementation((filter, opts) => {
+      // A "+" upvote and a literal "👍" should merge into the same group.
+      opts.onEvent(makeReaction("react1", "+", alice));
+      opts.onEvent(makeReaction("react2", "👍", bob));
+      return { stop: vi.fn() };
+    });
+
+    const { container } = renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /reaction/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Reactions" }),
+      ).toBeInTheDocument();
+    });
+
+    const groups = container.querySelectorAll(".nostr-thread__reaction-group");
+    expect(groups.length).toBe(1);
+    expect(
+      groups[0].querySelector(".nostr-thread__reaction-group-emoji")
+        .textContent,
+    ).toBe("👍");
+    expect(
+      groups[0].querySelector(".nostr-thread__reaction-group-count")
+        .textContent,
+    ).toBe("2");
+    expect(groups[0].textContent).toContain("Alice");
+    expect(groups[0].textContent).toContain("Bobby");
+  });
+
+  it("closes the reactions modal when the close button is clicked", async () => {
+    subscribeMock.mockImplementation((filter, opts) => {
+      opts.onEvent(makeReaction("react1"));
+      return { stop: vi.fn() };
+    });
+
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /reaction/i }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Reactions" }),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Close reactions" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Reactions" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows an empty state when there are no reactions", async () => {
+    subscribeMock.mockImplementation(() => ({ stop: vi.fn() }));
+
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /reaction/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("No reactions yet.")).toBeInTheDocument();
+    });
+  });
+
+  it("does not re-fetch profiles when the modal is reopened", async () => {
+    const alice = "reactionpubkeyaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    getUserMock.mockImplementation(({ pubkey }) =>
+      makeUser(pubkey, { name: "Alice" }),
+    );
+    subscribeMock.mockImplementation((filter, opts) => {
+      opts.onEvent(makeReaction("react1", "❤️", alice));
+      return { stop: vi.fn() };
+    });
+
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /reaction/i }));
+    await waitFor(() => expect(getUserMock).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Close reactions" }));
+    fireEvent.click(screen.getByRole("button", { name: /reaction/i }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Reactions" }),
+      ).toBeInTheDocument();
+    });
+
+    expect(getUserMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes to the profile view when a reactor is clicked", async () => {
+    const alice = "reactionpubkeyaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    getUserMock.mockImplementation(({ pubkey }) =>
+      makeUser(pubkey, { name: "Alice" }),
+    );
+    subscribeMock.mockImplementation((filter, opts) => {
+      opts.onEvent(makeReaction("react1", "❤️", alice));
+      return { stop: vi.fn() };
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="/"
+            element={<ReplySidePanel event={mainEvent} ndk={mockNdk} />}
+          />
+          <Route path="/profile/:pubkey" element={<div>PROFILE PAGE</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /reaction/i }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole("dialog", { name: "Reactions" }),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /alice/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("PROFILE PAGE")).toBeInTheDocument();
     });
   });
 });
