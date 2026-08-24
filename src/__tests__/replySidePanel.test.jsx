@@ -329,16 +329,64 @@ describe("ReplySidePanel", () => {
     });
   });
 
-  it("shows an empty state when there are no reactions", async () => {
+  it("hides the counts and expand button when there are no replies or reactions", async () => {
     subscribeMock.mockImplementation(() => ({ stop: vi.fn() }));
 
-    renderPanel();
-
-    fireEvent.click(screen.getByRole("button", { name: /reaction/i }));
+    const { container } = renderPanel();
 
     await waitFor(() => {
-      expect(screen.getByText("No reactions yet.")).toBeInTheDocument();
+      expect(
+        container.querySelector(".nostr-thread__reply-count"),
+      ).not.toBeInTheDocument();
+      expect(
+        container.querySelector(".nostr-thread__reaction-count"),
+      ).not.toBeInTheDocument();
+      expect(
+        container.querySelector(".nostr-thread__expand-btn"),
+      ).not.toBeInTheDocument();
     });
+  });
+
+  it("shows the reply count and expand button but hides the reaction count when only replies exist", async () => {
+    subscribeMock.mockImplementation((filter, opts) => {
+      opts.onEvent(makeReply("reply1"));
+      return { stop: vi.fn() };
+    });
+
+    const { container } = renderPanel();
+
+    await waitFor(() => {
+      expect(
+        container.querySelector(".nostr-thread__reply-count")?.textContent,
+      ).toContain("1");
+      expect(
+        container.querySelector(".nostr-thread__expand-btn"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      container.querySelector(".nostr-thread__reaction-count"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the reaction count but hides the reply count and expand button when only reactions exist", async () => {
+    subscribeMock.mockImplementation((filter, opts) => {
+      opts.onEvent(makeReaction("react1"));
+      return { stop: vi.fn() };
+    });
+
+    const { container } = renderPanel();
+
+    await waitFor(() => {
+      expect(
+        container.querySelector(".nostr-thread__reaction-count")?.textContent,
+      ).toContain("1");
+    });
+    expect(
+      container.querySelector(".nostr-thread__reply-count"),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelector(".nostr-thread__expand-btn"),
+    ).not.toBeInTheDocument();
   });
 
   it("does not re-fetch profiles when the modal is reopened", async () => {

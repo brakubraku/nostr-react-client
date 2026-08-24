@@ -145,31 +145,37 @@ export default function ReplySidePanel({
       className="nostr-thread__side-panel"
       aria-label="Replies and reactions"
     >
-      <span className="nostr-thread__reply-count">
-        {replies.length}
-        <span className="nostr-thread__reply-label">
-          {replies.length !== 1 ? "replies" : "reply"}
+      {replies.length > 0 && (
+        <span className="nostr-thread__reply-count">
+          {replies.length}
+          <span className="nostr-thread__reply-label">
+            {replies.length !== 1 ? "replies" : "reply"}
+          </span>
         </span>
-      </span>
-      <button
-        type="button"
-        className="nostr-thread__reaction-count"
-        title="Show who reacted"
-        onClick={() => setShowReactionsModal(true)}
-      >
-        {reactions.length}
-        <span className="nostr-thread__reaction-label">
-          {reactions.length !== 1 ? "reactions" : "reaction"}
-        </span>
-      </button>
-      <button
-        type="button"
-        className="nostr-thread__expand-btn"
-        title="Expand replies"
-        onClick={onExpand}
-      >
-        ▼ Expand
-      </button>
+      )}
+      {reactions.length > 0 && (
+        <button
+          type="button"
+          className="nostr-thread__reaction-count"
+          title="Show who reacted"
+          onClick={() => setShowReactionsModal(true)}
+        >
+          {reactions.length}
+          <span className="nostr-thread__reaction-label">
+            {reactions.length !== 1 ? "reactions" : "reaction"}
+          </span>
+        </button>
+      )}
+      {replies.length > 0 && (
+        <button
+          type="button"
+          className="nostr-thread__expand-btn"
+          title="Expand replies"
+          onClick={onExpand}
+        >
+          ▼ Expand
+        </button>
+      )}
 
       {showReactionsModal && (
         <div
