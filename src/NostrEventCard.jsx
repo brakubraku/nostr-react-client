@@ -455,7 +455,7 @@ export default function NostrEventCard({
                     className="nostr-card__video"
                     src={url}
                     controls
-                    preload="metadata"
+                    preload="none"
                     onClick={(e) => e.stopPropagation()}
                   >
                     Your browser does not support the video tag.
