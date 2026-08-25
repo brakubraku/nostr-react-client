@@ -1,46 +1,7 @@
 import { useEffect, useState } from "react";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
 import { logger } from "./logger";
-import NostrEventCard from "./NostrEventCard";
-import ReplySidePanel from "./ReplySidePanel";
-
-function EventWithReplies({
-  event,
-  ndk,
-  showReplies = false,
-  onShowReplies,
-  continuationReply,
-}) {
-  const [replies, setReplies] = useState([]);
-  const [repliesVisible, setRepliesVisible] = useState(showReplies);
-
-  return (
-    <div className="nostr-thread__event-with-replies">
-      <div className="nostr-thread__event">
-        <NostrEventCard event={event} ndk={ndk} />
-        <ReplySidePanel
-          event={event}
-          ndk={ndk}
-          onRepliesChange={setReplies}
-          onExpand={() => {
-            const nextVisible = !repliesVisible;
-            setRepliesVisible(nextVisible);
-            onShowReplies?.(nextVisible);
-          }}
-        />
-      </div>
-      {repliesVisible && replies.length > 0 && (
-        <div className="nostr-thread__reply-group">
-          {continuationReply && continuationReply.body}
-          {replies.map((reply) => {
-            if (reply.id === continuationReply?.event.id) return; // already added above
-            return <EventWithReplies key={reply.id} event={reply} ndk={ndk} />;
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+import EventWithReplies from "./EventWithReplies";
 
 /**
  * Thread - displays a Nostr event together with its context:
