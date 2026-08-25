@@ -1477,19 +1477,196 @@
   text-align: center;
 }
 
-.nostr-thread__reply-count {
+.nostr-thread__reply-count,
+.nostr-thread__reaction-count {
   font-size: 20px;
   font-weight: 600;
   line-height: 1;
   color: var(--text-h);
 }
 
-.nostr-thread__reply-label {
+/* The reaction count is a button that opens the reactions modal. */
+.nostr-thread__reaction-count {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--sans);
+  color: var(--accent);
+  transition: opacity 0.2s;
+}
+
+.nostr-thread__reaction-count:hover,
+.nostr-thread__reaction-count:focus-visible {
+  opacity: 0.75;
+  outline: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.nostr-thread__reply-label,
+.nostr-thread__reaction-label {
   display: block;
   margin-top: 5px;
   font-size: 11px;
   font-weight: 400;
   color: var(--text);
+}
+
+/* --- Reactions Modal --- */
+.nostr-thread__modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.nostr-thread__modal {
+  background: var(--bg, #fff);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  max-width: 420px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.nostr-thread__modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.nostr-thread__modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-h);
+}
+
+.nostr-thread__modal-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-family: var(--sans);
+}
+
+.nostr-thread__modal-close:hover {
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.nostr-thread__modal-empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.nostr-thread__modal-groups {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nostr-thread__reaction-group {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.nostr-thread__reaction-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.nostr-thread__reaction-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.nostr-thread__reaction-group-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.nostr-thread__reaction-group-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--accent-bg);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.nostr-thread__reaction-profiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Each reactor row is a button that routes to the profile view. */
+.nostr-thread__reaction-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--sans);
+  text-align: left;
+  color: inherit;
+  transition: background 0.2s;
+}
+
+.nostr-thread__reaction-profile:hover,
+.nostr-thread__reaction-profile:focus-visible {
+  background: var(--accent-bg);
+  outline: none;
+}
+
+.nostr-thread__reaction-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.nostr-thread__reaction-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nostr-thread__reaction-name {
+  font-size: 14px;
+  color: var(--text-h);
 }
 
 .nostr-thread__expand-btn {
