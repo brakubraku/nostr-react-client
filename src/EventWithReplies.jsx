@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { NDKEvent, eventIsReply } from "@nostr-dev-kit/ndk";
+import { NDKEvent } from "@nostr-dev-kit/ndk";
 import { truncateHex } from "./utils";
 import NostrEventCard from "./NostrEventCard";
+import PagedReplies from "./PagedReplies";
 
 /**
  * Map a raw reaction content value to the emoji shown in the UI.
@@ -24,10 +25,10 @@ function reactionEmoji(content) {
  * (onRepliesChange / onReactionsChange / onExpand) that connected them.
  *
  * The side panel (reply count, reaction count, expand button and reactions
- * modal) is rendered inline beside the event card, and the replies it loads are
- * rendered directly in the reply group below. Each reply is itself wrapped in
- * an EventWithReplies, so deeper chains recurse naturally. The reply group
- * only renders once it has been expanded and there are replies to show.
+ * modal) is rendered inline beside the event card. Replies are queried and
+ * rendered by PagedReplies below the card; it reports the loaded replies back
+ * so the side panel can show the count. Each reply is itself wrapped in an
+ * EventWithReplies, so deeper chains recurse naturally.
  *
  * Props:
  *   event             - The event whose replies/reactions should be rendered.
@@ -51,45 +52,36 @@ export default function EventWithReplies({
   const [profiles, setProfiles] = useState({});
   const fetchedPubkeys = useRef(new Set());
 
-  // Subscribe to events that tag this event; reactions (kind 7) are kept
-  // separately from actual replies.
+  // Subscribe to reactions (kind 7) that tag this event for the side panel.
+  // Replies are queried by PagedReplies, which reports them back here.
   useEffect(() => {
-    setReplies([]);
     setReactions([]);
     if (!ndk || !event?.id) return;
 
-    const op = event instanceof NDKEvent ? event : new NDKEvent(ndk, event);
-    let replySub;
+    let reactionSub;
     try {
-      replySub = ndk.subscribe(
+      reactionSub = ndk.subscribe(
         { "#e": [event.id] },
         {
           onEvent: (replyEvent) => {
-            const reply =
+            const reaction =
               replyEvent instanceof NDKEvent
                 ? replyEvent
                 : new NDKEvent(ndk, replyEvent);
-            // Reactions are kind 7 events; count them separately.
-            if (reply.kind === 7) {
-              setReactions((prev) =>
-                prev.some((r) => r.id === reply.id) ? prev : [...prev, reply],
-              );
-              return;
-            }
-            // Keep actual replies, dropping events that merely reference this
-            // event (e.g. reposts, mentions).
-            if (!eventIsReply(op, reply)) return;
-            setReplies((prev) =>
-              prev.some((r) => r.id === reply.id) ? prev : [...prev, reply],
+            if (reaction.kind !== 7) return;
+            setReactions((prev) =>
+              prev.some((r) => r.id === reaction.id)
+                ? prev
+                : [...prev, reaction],
             );
           },
         },
       );
     } catch (error) {
-      console.error("Failed to subscribe to replies:", error);
+      console.error("Failed to subscribe to reactions:", error);
     }
 
-    return () => replySub?.stop?.();
+    return () => reactionSub?.stop?.();
   }, [ndk, event]);
 
   // Fetch profiles of the reaction authors when the modal opens, caching by
@@ -270,15 +262,13 @@ export default function EventWithReplies({
           )}
         </aside>
       </div>
-      {repliesVisible && replies.length > 0 && (
-        <div className="nostr-thread__reply-group">
-          {continuationReply && continuationReply.body}
-          {replies.map((reply) => {
-            if (reply.id === continuationReply?.event.id) return; // already added above
-            return <EventWithReplies key={reply.id} event={reply} ndk={ndk} />;
-          })}
-        </div>
-      )}
+      <PagedReplies
+        event={event}
+        ndk={ndk}
+        visible={repliesVisible}
+        continuationReply={continuationReply}
+        onRepliesChange={setReplies}
+      />
     </div>
   );
 }
