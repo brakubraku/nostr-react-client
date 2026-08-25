@@ -239,6 +239,30 @@
   max-width: 100%;
 }
 
+.nostr-card__image-wrap--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: min(220px, 100%);
+  min-height: 120px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nostr-card__image-wrap--placeholder:hover {
+  border-color: var(--accent-border);
+}
+
+.nostr-card__image-wrap--placeholder .nostr-card__load-hint {
+  padding: 0 16px;
+  text-align: center;
+}
+
 .nostr-card__image-wrap--nsfw {
   /* Tiny or not-yet-loaded images leave almost no room for the NSFW
      status/error overlay, so reserve a minimum area for the message. */

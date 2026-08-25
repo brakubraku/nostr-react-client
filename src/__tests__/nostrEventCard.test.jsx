@@ -29,6 +29,14 @@ function renderWithRouter(element) {
   );
 }
 
+// NsfwCheckedImage shows a "Click to load" placeholder instead of the <img>
+// until it is clicked; this helper clicks every such placeholder.
+function loadContentImages() {
+  for (const placeholder of screen.getAllByText("Click to load")) {
+    fireEvent.click(placeholder);
+  }
+}
+
 // Mock the favourites module
 vi.mock("../favourites", () => ({
   getFavourites: Object.assign(() => [], { subscribe: vi.fn(() => vi.fn()) }),
@@ -247,6 +255,8 @@ describe("NostrEventCard", () => {
 
     renderWithRouter(<NostrEventCard event={eventWithImage} />);
 
+    loadContentImages();
+
     const img = screen.getByAltText("Image 1");
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("src", imageUrl);
@@ -266,6 +276,8 @@ describe("NostrEventCard", () => {
     };
 
     renderWithRouter(<NostrEventCard event={eventWithImage} />);
+
+    loadContentImages();
 
     await waitFor(() => {
       expect(screen.getByText(/Sensitive content/)).toBeInTheDocument();
@@ -287,6 +299,8 @@ describe("NostrEventCard", () => {
     };
 
     renderWithRouter(<NostrEventCard event={eventWithImage} />);
+
+    loadContentImages();
 
     await waitFor(() => {
       expect(screen.getByText(/Sensitive content/)).toBeInTheDocument();
@@ -314,6 +328,8 @@ describe("NostrEventCard", () => {
 
     renderWithRouter(<NostrEventCard event={eventWithImage} />);
 
+    loadContentImages();
+
     await waitFor(() => {
       expect(screen.queryByText(/CORS blocked/)).toBeInTheDocument();
     });
@@ -337,6 +353,8 @@ describe("NostrEventCard", () => {
 
     renderWithRouter(<NostrEventCard event={eventWithImage} />);
 
+    loadContentImages();
+
     fireEvent.error(screen.getByAltText("Image 1"));
 
     await waitFor(() => {
@@ -356,6 +374,8 @@ describe("NostrEventCard", () => {
     const { container } = renderWithRouter(
       <NostrEventCard event={eventWithImages} />,
     );
+
+    loadContentImages();
 
     const images = container
       .querySelector(".nostr-card__content")
@@ -377,6 +397,8 @@ describe("NostrEventCard", () => {
     const { container } = renderWithRouter(
       <NostrEventCard event={eventWithParts} />,
     );
+
+    loadContentImages();
 
     const content = container.querySelector(".nostr-card__content");
     const nodes = [...content.children];
@@ -472,6 +494,8 @@ describe("NostrEventCard", () => {
     const { container } = renderWithRouter(
       <NostrEventCard event={eventWithImages} />,
     );
+
+    loadContentImages();
 
     const content = container.querySelector(".nostr-card__content");
     const nodes = [...content.children];

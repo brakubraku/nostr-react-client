@@ -2,18 +2,35 @@ import { useEffect, useState } from "react";
 import { checkImageUrl } from "./nsfw";
 
 /**
- * An <img> that is checked with nsfwjs as soon as it is mounted.
+ * An <img> that is checked with nsfwjs once it is loaded.
  *
- * Images classified as NSFW are blurred behind a "Sensitive content" overlay
- * until the viewer explicitly clicks to reveal them.
+ * The image is not fetched until `shouldLoad` is true. By default the component
+ * renders an empty placeholder with a "Click to load" message; clicking it
+ * flips the internal `shouldLoad` state to true and starts loading the image.
+ * Once loaded, images classified as NSFW are blurred behind a "Sensitive
+ * content" overlay until the viewer explicitly clicks to reveal them.
  */
-export default function NsfwCheckedImage({ src, alt, className, onClick }) {
+export default function NsfwCheckedImage({
+  src,
+  alt,
+  className,
+  onClick,
+  shouldLoad = false,
+}) {
+  // `shouldLoad` is both an input parameter and the internal state that drives
+  // whether the image is loaded. The prop only seeds the initial value; the
+  // "Click to load" placeholder flips it to true afterwards.
+  const [shouldLoadState, setShouldLoadState] = useState(shouldLoad);
   const [nsfw, setNsfw] = useState(null);
   const [revealed, setRevealed] = useState(false);
   // indicated that <img> tag loading failed - in case where the src is unreachable for example
   const [imgFailed, setImgFailed] = useState(false);
 
   useEffect(() => {
+    if (!shouldLoadState) {
+      return;
+    }
+
     let cancelled = false;
 
     checkImageUrl(src).then((result) => {
@@ -25,17 +42,45 @@ export default function NsfwCheckedImage({ src, alt, className, onClick }) {
     return () => {
       cancelled = true;
     };
-  }, [src]);
+  }, [src, shouldLoadState]);
 
   useEffect(() => {
-    setImgFailed(false);
-  }, [src]);
+    if (shouldLoadState) {
+      setImgFailed(false);
+    }
+  }, [src, shouldLoadState]);
 
   const blurred = ((nsfw?.nsfw ?? true) || nsfw?.error) && !revealed;
 
   function reveal(e) {
     e.stopPropagation();
     setRevealed(true);
+  }
+
+  function loadImage(e) {
+    e.stopPropagation();
+    setShouldLoadState(true);
+  }
+
+  if (!shouldLoadState) {
+    return (
+      <div
+        className="nostr-card__image-wrap nostr-card__image-wrap--placeholder"
+        role="button"
+        tabIndex={0}
+        title="Load image"
+        aria-label={`Load image: ${alt || ""}`}
+        onClick={loadImage}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            loadImage(e);
+          }
+        }}
+      >
+        <span className="nostr-card__load-hint">Click to load</span>
+      </div>
+    );
   }
 
   return (
