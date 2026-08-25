@@ -106,5 +106,5 @@ export default function Thread({
     );
   }
 
-  return <div className="nostr-thread__scroll">{threadBody}</div>;
+  return threadBody;
 }

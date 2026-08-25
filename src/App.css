@@ -1409,8 +1409,30 @@
   flex-direction: column;
   gap: 12px;
   padding: 12px;
+  border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card-bg);
+}
+
+.nostr-thread + .nostr-thread {
+  position: relative;
+  margin-top: 30px;
+}
+
+.nostr-thread + .nostr-thread::before {
+  content: "";
+  position: absolute;
+  top: -30px;
+  left: 12px;
+  right: 12px;
+  height: 30px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--accent-border, rgba(170, 59, 255, 0.5)),
+    transparent
+  );
+  pointer-events: none;
 }
 
 .nostr-thread__scroll {
