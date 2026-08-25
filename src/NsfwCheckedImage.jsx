@@ -26,6 +26,12 @@ export default function NsfwCheckedImage({
   // indicated that <img> tag loading failed - in case where the src is unreachable for example
   const [imgFailed, setImgFailed] = useState(false);
 
+  // Keep the internal state in sync when the caller changes `shouldLoad`
+  // (e.g. NostrEventCard's "Load images" button flips it from false to true).
+  useEffect(() => {
+    setShouldLoadState(shouldLoad);
+  }, [shouldLoad]);
+
   useEffect(() => {
     if (!shouldLoadState) {
       return;

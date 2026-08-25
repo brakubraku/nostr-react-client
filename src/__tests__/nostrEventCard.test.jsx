@@ -262,6 +262,53 @@ describe("NostrEventCard", () => {
     expect(img).toHaveAttribute("src", imageUrl);
   });
 
+  it("should show a load-images button when the event has images", () => {
+    const imageUrl = "https://example.com/image.png";
+    const eventWithImage = {
+      ...basicEvent,
+      content: `Check this out! ${imageUrl}`,
+    };
+
+    renderWithRouter(<NostrEventCard event={eventWithImage} />);
+
+    expect(screen.getByText(/Load images/)).toBeInTheDocument();
+  });
+
+  it("should not show a load-images button when the event has no images", () => {
+    renderWithRouter(<NostrEventCard event={basicEvent} />);
+
+    expect(screen.queryByText(/Load images/)).not.toBeInTheDocument();
+  });
+
+  it("should not show a load-images button for video-only content", () => {
+    const eventWithVideo = {
+      ...basicEvent,
+      content: "https://example.com/video.mp4",
+    };
+
+    renderWithRouter(<NostrEventCard event={eventWithVideo} />);
+
+    expect(screen.queryByText(/Load images/)).not.toBeInTheDocument();
+  });
+
+  it("should load all images when the load-images button is pressed", () => {
+    const content = `
+      https://example.com/img1.png
+      https://example.com/img2.jpg
+    `;
+    const eventWithImages = { ...basicEvent, content };
+
+    renderWithRouter(<NostrEventCard event={eventWithImages} />);
+
+    expect(screen.queryByAltText("Image 1")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText(/Load images/));
+
+    expect(screen.getByAltText("Image 1")).toBeInTheDocument();
+    expect(screen.getByAltText("Image 2")).toBeInTheDocument();
+    expect(screen.queryByText(/Load images/)).not.toBeInTheDocument();
+  });
+
   it("should blur images classified as NSFW", async () => {
     const nsfwModule = await import("../nsfw");
     vi.mocked(nsfwModule.checkImageUrl).mockResolvedValue({

@@ -139,8 +139,7 @@ function NostrRefCard({ refValue, ndk }) {
   }, [decoded, ndk, refValue]);
 
   if (decoded?.type === "npub" || decoded?.type === "nprofile") {
-    const pubkey =
-      decoded.type === "npub" ? decoded.data : decoded.data.pubkey;
+    const pubkey = decoded.type === "npub" ? decoded.data : decoded.data.pubkey;
     return (
       <div
         className="nostr-card__ref nostr-card__ref--account"
@@ -164,8 +163,6 @@ function NostrRefCard({ refValue, ndk }) {
 
   return <span className="nostr-card__nostr-ref">{refValue}</span>;
 }
-
-
 
 /**
  * NostrEventCard — a React component that displays a single Nostr event.
@@ -191,6 +188,9 @@ export default function NostrEventCard({
   const [showMeta, setShowMeta] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  // When true, image media in the content is loaded automatically (via the
+  // "Load images" button shown at the top of cards that contain images).
+  const [loadImages, setLoadImages] = useState(false);
   // Check if this event is already in favourites on mount and when external changes happen
   useEffect(() => {
     setIsFav(isFavorite(event?.id));
@@ -341,6 +341,10 @@ export default function NostrEventCard({
   const displayedParts = expanded
     ? contentParts
     : truncateText(contentParts, 280);
+  const imageParts = contentParts.filter(
+    (part) => part.type === "media-url" && !isVideoUrl(part.value),
+  );
+  const hasImages = imageParts.length > 0;
   let imageCount = 0;
 
   // Extract some tag info
@@ -421,6 +425,21 @@ export default function NostrEventCard({
         </div>
       </div>
 
+      {/* "Load images" button at the top of cards that contain images */}
+      {hasImages && !loadImages && (
+        <button
+          type="button"
+          className="nostr-card__load-images-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLoadImages(true);
+          }}
+          title="Load images in this post"
+        >
+          Load images ({imageParts.length})
+        </button>
+      )}
+
       {/* Event content: text, media URLs and nostr refs in splitContent order */}
       <div className="nostr-card__content">
         {kind === 7 ? (
@@ -450,6 +469,7 @@ export default function NostrEventCard({
                   className="nostr-card__image"
                   src={url}
                   alt={`Image ${imageCount}`}
+                  shouldLoad={loadImages}
                   onClick={(e) => {
                     e.stopPropagation();
                     window.open(url, "_blank", "noopener,noreferrer");
@@ -459,9 +479,7 @@ export default function NostrEventCard({
             }
 
             if (part.type === "nostr") {
-              return (
-                <NostrRefCard key={i} refValue={part.value} ndk={ndk} />
-              );
+              return <NostrRefCard key={i} refValue={part.value} ndk={ndk} />;
             }
 
             return <span key={i}>{part.value}</span>;
