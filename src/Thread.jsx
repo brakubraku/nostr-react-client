@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { NDKEvent } from "@nostr-dev-kit/ndk";
+import { logger } from "./logger";
 import NostrEventCard from "./NostrEventCard";
 import ReplySidePanel from "./ReplySidePanel";
 
@@ -82,7 +83,11 @@ export default function Thread({
         if (!cancelled && parent) setParentEvent(parent);
       })
       .catch((error) => {
-        console.error("Failed to fetch parent event:", error);
+        logger.error("Failed to fetch parent event", {
+          eventId: event.id,
+          message: error?.message || String(error),
+          stack: error?.stack,
+        });
       });
 
     return () => {

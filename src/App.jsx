@@ -7,6 +7,7 @@ import NostrEventViewer from "./NostrEventViewer";
 import NostrFavourites from "./NostrFavourites";
 import NostrFollowing from "./NostrFollowing";
 import NostrProfile from "./NostrProfile";
+import ErrorPanel from "./ErrorPanel";
 import "./App.css";
 
 // Relay set used for the live feed and the shared NDK instance. App is the
@@ -87,6 +88,7 @@ function AppLayout() {
 
   return (
     <div className="app">
+      <ErrorPanel />
       <header className="app__header">
         {/* <h1>Nostr Events</h1> */}
         <nav className="app__nav">
