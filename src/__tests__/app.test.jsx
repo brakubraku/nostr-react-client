@@ -63,6 +63,7 @@ describe("App", () => {
   it("should render navigation links", async () => {
     renderWithRouter("/");
     expect(await screen.findByText("Live Feed")).toBeInTheDocument();
+    expect(screen.getByText("Following Feed")).toBeInTheDocument();
     expect(screen.getByText("Event Lookup")).toBeInTheDocument();
     expect(screen.getByText("Profile")).toBeInTheDocument();
     expect(screen.getByText("⭐ Favourites")).toBeInTheDocument();
@@ -121,6 +122,16 @@ describe("App", () => {
       const feed = screen.getByText(/Relays:/);
       expect(feed).toBeInTheDocument();
       expect(screen.getByText(/relay\.primal\.net/)).toBeInTheDocument();
+    });
+  });
+
+  it("should render the NostrFollowingFeed on the /following-feed route", async () => {
+    renderWithRouter("/following-feed");
+    await waitFor(() => {
+      expect(screen.getByText("Following feed")).toBeInTheDocument();
+      expect(
+        screen.getByText("You're not following any accounts yet."),
+      ).toBeInTheDocument();
     });
   });
 

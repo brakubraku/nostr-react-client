@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import { connectNDK, getNDK } from "./ndk";
 import NDKCacheAdapterDexie from "@nostr-dev-kit/ndk-cache-dexie";
 import NostrFeed from "./NostrFeed";
+import NostrFollowingFeed from "./NostrFollowingFeed";
 import NostrEventViewer from "./NostrEventViewer";
 import NostrFavourites from "./NostrFavourites";
 import NostrFollowing from "./NostrFollowing";
@@ -102,6 +103,14 @@ function AppLayout() {
             Live Feed
           </NavLink>
           <NavLink
+            to="/following-feed"
+            className={({ isActive }) =>
+              `app__nav-btn ${isActive ? "app__nav-btn--active" : ""}`
+            }
+          >
+            Following Feed
+          </NavLink>
+          <NavLink
             to="/viewer"
             className={({ isActive }) =>
               `app__nav-btn ${isActive ? "app__nav-btn--active" : ""}`
@@ -145,6 +154,16 @@ function AppLayout() {
                 ndk={ndk}
                 relayUrls={FEED_RELAYS}
                 filter={{ kinds: [30023], limit: 30 }}
+                limit={50}
+              />
+            }
+          />
+          <Route
+            path="/following-feed"
+            element={
+              <NostrFollowingFeed
+                ndk={ndk}
+                relayUrls={FEED_RELAYS}
                 limit={50}
               />
             }
