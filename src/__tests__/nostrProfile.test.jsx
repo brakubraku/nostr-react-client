@@ -24,6 +24,13 @@ vi.mock("../nsfw", () => ({
   checkImageUrl: vi.fn(() => Promise.resolve({ nsfw: false, cf: null })),
 }));
 
+// Mock the ndk package so the profile's NIP-65 relay list lookup stays
+// deterministic in tests.
+vi.mock("@nostr-dev-kit/ndk", () => ({
+  getRelayListForUser: vi.fn(),
+  nip19: { decode: vi.fn() },
+}));
+
 const VALID_PUBKEY = "a".repeat(64);
 const mockProfile = {
   displayName: "Alice",
@@ -139,3 +146,34 @@ describe("NostrProfile profile lookup", () => {
   });
 });
 
+describe("NostrProfile outbox relays", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows the user's outbox relays from their NIP-65 relay list", async () => {
+    const { getRelayListForUser } = await import("@nostr-dev-kit/ndk");
+    vi.mocked(getRelayListForUser).mockResolvedValue({
+      writeRelayUrls: ["wss://relay.example.com/", "wss://relay2.example.com/"],
+    });
+
+    renderProfile();
+
+    expect(await screen.findByText("Outbox Relays")).toBeInTheDocument();
+    expect(
+      await screen.findByText("wss://relay.example.com/"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("wss://relay2.example.com/")).toBeInTheDocument();
+    expect(getRelayListForUser).toHaveBeenCalledWith(VALID_PUBKEY, mockNdk);
+  });
+
+  it("shows None found when the user has no relay list", async () => {
+    const { getRelayListForUser } = await import("@nostr-dev-kit/ndk");
+    vi.mocked(getRelayListForUser).mockResolvedValue(undefined);
+
+    renderProfile();
+
+    expect(await screen.findByText("Outbox Relays")).toBeInTheDocument();
+    expect(await screen.findByText("None found")).toBeInTheDocument();
+  });
+});

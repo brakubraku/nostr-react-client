@@ -1173,6 +1173,61 @@
   text-decoration: underline;
 }
 
+/* --- Profile Outbox Relays --- */
+.nostr-profile__relays {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.nostr-profile__relays-label {
+  color: var(--text);
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.nostr-profile__relays-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nostr-profile__relay {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.nostr-profile__relay a {
+  color: var(--accent);
+  text-decoration: none;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  display: inline-block;
+  word-break: break-all;
+}
+
+.nostr-profile__relay a:hover {
+  text-decoration: underline;
+}
+
+.nostr-profile__relays-loading,
+.nostr-profile__relays-empty {
+  color: var(--text);
+  opacity: 0.7;
+}
+
+.nostr-profile__relays-error {
+  color: #ef4444;
+}
+
 .nostr-profile__pubkey-full {
   display: flex;
   align-items: center;

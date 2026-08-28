@@ -36,6 +36,9 @@ export default function NostrProfile({ ndk }) {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isFollowed, setIsFollowed] = useState(false);
+  const [outboxRelays, setOutboxRelays] = useState([]);
+  const [relaysLoading, setRelaysLoading] = useState(false);
+  const [relaysError, setRelaysError] = useState(null);
 
   const eventsSubRef = useRef(null);
 
@@ -76,6 +79,9 @@ export default function NostrProfile({ ndk }) {
       setProfile(null);
       setEvents([]);
       setError(null);
+      setOutboxRelays([]);
+      setRelaysError(null);
+      setRelaysLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlPubkey]);
@@ -111,6 +117,8 @@ export default function NostrProfile({ ndk }) {
     setError(null);
     setProfile(null);
     setEvents([]);
+    setOutboxRelays([]);
+    setRelaysError(null);
     eventsSubRef.current?.stop?.();
     eventsSubRef.current = null;
 
@@ -130,6 +138,9 @@ export default function NostrProfile({ ndk }) {
       const user = ndk.getUser({ pubkey: resolved });
       await user.fetchProfile();
       setProfile(user.profile || {});
+
+      // Fetch the user's outbox relays (NIP-65 kind 10002)
+      fetchOutboxRelays(resolved);
 
       // Subscribe to the user's events (kind 1 text notes, kind 30023 long-form)
       subscribeUserEvents(resolved);
@@ -168,6 +179,30 @@ export default function NostrProfile({ ndk }) {
     );
 
     eventsSubRef.current = sub;
+  }
+
+  /**
+   * Fetch the user's outbox relays from their NIP-65 relay list (kind 10002).
+   * The "write" relays in a relay list are the outbox relays a user publishes
+   * to (unmarked "both" relays count as well). Falls back to an empty list
+   * when the user has no relay list.
+   */
+  async function fetchOutboxRelays(pubkeyHex) {
+    if (!pubkeyHex) return;
+
+    setRelaysLoading(true);
+    setRelaysError(null);
+
+    try {
+      const { getRelayListForUser } = await import("@nostr-dev-kit/ndk");
+      const relayList = await getRelayListForUser(pubkeyHex, ndk);
+      setOutboxRelays(relayList?.writeRelayUrls || []);
+    } catch (err) {
+      setRelaysError(err.message);
+      setOutboxRelays([]);
+    }
+
+    setRelaysLoading(false);
   }
 
   /**
@@ -337,6 +372,35 @@ export default function NostrProfile({ ndk }) {
               )}
             </div>
 
+            {/* Outbox relays (NIP-65) */}
+            <div className="nostr-profile__relays">
+              <span className="nostr-profile__relays-label">Outbox Relays</span>
+              {relaysLoading && (
+                <span className="nostr-profile__relays-loading">
+                  Loading relays…
+                </span>
+              )}
+              {!relaysLoading && relaysError && (
+                <span className="nostr-profile__relays-error">
+                  Failed to load relays
+                </span>
+              )}
+              {!relaysLoading && !relaysError && outboxRelays.length === 0 && (
+                <span className="nostr-profile__relays-empty">None found</span>
+              )}
+              {!relaysLoading && !relaysError && outboxRelays.length > 0 && (
+                <ul className="nostr-profile__relays-list">
+                  {outboxRelays.map((url) => (
+                    <li key={url} className="nostr-profile__relay">
+                      <a href={url} target="_blank" rel="noopener noreferrer">
+                        {url}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             {/* Full pubkey (click to copy) */}
             <div className="nostr-profile__pubkey-full">
               <span className="nostr-profile__meta-label">Pubkey</span>
@@ -389,7 +453,7 @@ export default function NostrProfile({ ndk }) {
             </div>
           )}
 
-          {!eventsLoading && events.length > 0 && (
+          {events.length > 0 && (
             <div className="nostr-profile__events-list">
               {sortedEvents().map((event) => (
                 <Thread
